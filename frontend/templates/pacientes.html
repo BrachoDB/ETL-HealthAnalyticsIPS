@@ -1,0 +1,91 @@
+{% load static %}
+{% extends 'base.html' %}
+
+{% block title %}Pacientes • HealthAnalytics IPS{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+<section class="grid">
+  <div class="grid__header">
+    <h2 class="h2">Pacientes</h2>
+    <p class="muted">Listado desde /api/etl/pacientes/ con filtros opcionales.</p>
+  </div>
+
+  <div class="card">
+    <div class="card__header">
+      <h3 class="h3">Filtros</h3>
+      <button class="btn btn--ghost" type="button" id="btn-load">Buscar</button>
+    </div>
+    <div class="card__body">
+      <div class="filters">
+        <label class="field">
+          <span class="field__label">Riesgo</span>
+          <select class="field__input" id="filter-riesgo">
+            <option value="">(Todos)</option>
+            <option value="Bajo">Bajo</option>
+            <option value="Medio">Medio</option>
+            <option value="Alto">Alto</option>
+            <option value="Crítico">Crítico</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Sexo</span>
+          <select class="field__input" id="filter-sexo">
+            <option value="">(Todos)</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Fumador</span>
+          <select class="field__input" id="filter-fumador">
+            <option value="">(Todos)</option>
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Límite</span>
+          <input class="field__input" type="number" min="1" max="200" id="filter-limit" value="50" />
+        </label>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-meta" id="pacientes-meta">—</div>
+        <table class="table" id="pacientes-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Edad</th>
+              <th>Sexo</th>
+              <th>IMC</th>
+              <th>Glucosa</th>
+              <th>Presión</th>
+              <th>Fumador</th>
+              <th>Riesgo</th>
+            </tr>
+          </thead>
+          <tbody id="pacientes-tbody"></tbody>
+        </table>
+        <div class="muted" id="pacientes-empty" style="display:none;">No hay resultados para los filtros.</div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+  window.__PACIENTES__ = true;
+</script>
+{% endblock %}
+

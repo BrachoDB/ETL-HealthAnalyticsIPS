@@ -1,0 +1,15 @@
+.auth{max-width:520px;margin:0 auto;}
+.auth__card{
+  background: rgba(15,26,48,.75);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+.auth__title{margin:0 0 8px 0;font-size:22px;}
+.auth__subtitle{margin:0 0 16px 0;color:var(--muted);line-height:1.4;}
+.auth__form{display:flex;flex-direction:column;gap:14px;}
+.auth__actions{display:flex;justify-content:flex-start;}
+.auth__error{min-height:18px;color:var(--danger);font-weight:700;}
+.auth__hint{margin-top:14px;color:var(--muted);font-size:12px;}
+

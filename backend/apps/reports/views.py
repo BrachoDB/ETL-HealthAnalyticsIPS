@@ -4,9 +4,9 @@ from collections import Counter
 
 import numpy as np
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from etl.models import ClinicalRecord
 
@@ -15,7 +15,6 @@ def _mode(values: list[float | int]) -> float | int | None:
     if not values:
         return None
     c = Counter(values)
-    # modo: mayor frecuencia; si empata, usa el primero por orden estable
     return c.most_common(1)[0][0]
 
 
@@ -26,7 +25,6 @@ class ReportsView(APIView):
         qs = ClinicalRecord.objects.all()
         total = qs.count()
 
-        # Numeric distributions (stats)
         imc_vals = list(qs.exclude(imc__isnull=True).values_list('imc', flat=True))
         age_vals = list(qs.exclude(age__isnull=True).values_list('age', flat=True))
         gluc_vals = list(qs.exclude(glucosa__isnull=True).values_list('glucosa', flat=True))
@@ -48,12 +46,18 @@ class ReportsView(APIView):
             'glucosa': stats(gluc_vals),
         }
 
-        # Segmentations
         sexo = dict(Counter(qs.exclude(sex__isnull=True).values_list('sex', flat=True)))
-        diagnostico = dict(Counter(qs.exclude(diagnostico_preliminar__isnull=True).values_list('diagnostico_preliminar', flat=True)))
-        riesgo = dict(Counter(qs.exclude(riesgo_enfermedad__isnull=True).values_list('riesgo_enfermedad', flat=True)))
+        diagnostico = dict(
+            Counter(
+                qs.exclude(diagnostico_preliminar__isnull=True).values_list(
+                    'diagnostico_preliminar', flat=True
+                )
+            )
+        )
+        riesgo = dict(
+            Counter(qs.exclude(riesgo_enfermedad__isnull=True).values_list('riesgo_enfermedad', flat=True))
+        )
 
-        # IMC bins
         imc_bins = {'<18.5': 0, '18.5-24.9': 0, '25-29.9': 0, '>=30': 0}
         for v in imc_vals:
             v = float(v)
@@ -66,7 +70,6 @@ class ReportsView(APIView):
             else:
                 imc_bins['>=30'] += 1
 
-        # Edad bins
         age_bins = {'<30': 0, '30-44': 0, '45-59': 0, '>=60': 0}
         for v in age_vals:
             v = int(v)
@@ -79,16 +82,17 @@ class ReportsView(APIView):
             else:
                 age_bins['>=60'] += 1
 
-        return Response({
-            'total_records': total,
-            'stats': stats_payload,
-            'segmentaciones': {
-                'edad': age_bins,
-                'sexo': sexo,
-                'diagnostico': diagnostico,
-                'imc': imc_bins,
-                'riesgo': riesgo,
-            },
-        })
-
+        return Response(
+            {
+                'total_records': total,
+                'stats': stats_payload,
+                'segmentaciones': {
+                    'edad': age_bins,
+                    'sexo': sexo,
+                    'diagnostico': diagnostico,
+                    'imc': imc_bins,
+                    'riesgo': riesgo,
+                },
+            }
+        )
 

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}HealthAnalytics IPS{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  {% block css %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand__logo" aria-hidden="true">H</div>
+        <div class="brand__meta">
+          <div class="brand__name">HealthAnalytics IPS</div>
+          <div class="brand__tag">ETL • Analítica • Machine Learning</div>
+        </div>
+      </div>
+
+      <nav class="top-nav">
+        {% if request.user.is_authenticated %}
+          <a class="nav-link" href="/dashboard/kpis/">Dashboard</a>
+          <a class="nav-link" href="/dashboard/pacientes/">Pacientes</a>
+          <a class="nav-link" href="/dashboard/reportes/">Reportes</a>
+          <a class="nav-link" href="/dashboard/predicciones/">Predicciones</a>
+          <button class="nav-link nav-button" id="btn-logout" type="button">Salir</button>
+        {% endif %}
+      </nav>
+    </header>
+
+    <main class="app-main">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+      <span>© {{ year|default: "" }} HealthAnalytics IPS</span>
+      <span class="sep">•</span>
+      <span>Dashboard interno</span>
+    </footer>
+  </div>
+
+  <script src="{% static 'js/api.js' %}"></script>
+  {% block js %}{% endblock %}
+</body>
+</html>
+

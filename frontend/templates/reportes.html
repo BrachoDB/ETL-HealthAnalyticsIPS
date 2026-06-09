@@ -1,0 +1,64 @@
+{% load static %}
+{% extends 'base.html' %}
+
+{% block title %}Reportes • HealthAnalytics IPS{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+<section class="grid">
+  <div class="grid__header">
+    <h2 class="h2">Reportes</h2>
+    <p class="muted">KPIs y estadísticas clínicas a partir de ClinicalRecord.</p>
+  </div>
+
+  <div class="card">
+    <div class="card__header">
+      <h3 class="h3">Resumen y Segmentaciones</h3>
+      <button class="btn btn--ghost" type="button" id="btn-load-reportes">Actualizar</button>
+    </div>
+    <div class="card__body">
+      <div class="row">
+        <div class="col">
+          <div class="subcard">
+            <div class="subcard__title">Estadística</div>
+            <div class="kv" id="reportes-stats">Cargando…</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="subcard">
+            <div class="subcard__title">Segmentaciones</div>
+            <div class="kv" id="reportes-seg">Cargando…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart">
+          <h4 class="chart__title">IMC</h4>
+          <canvas id="chart-imc-2" height="120"></canvas>
+        </div>
+        <div class="chart">
+          <h4 class="chart__title">Edad</h4>
+          <canvas id="chart-age-2" height="120"></canvas>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;" class="muted">
+        Descarga completa: usa endpoints de exportación desde Swagger o Postman.
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/charts.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+  window.__REPORTES__ = true;
+</script>
+{% endblock %}
+

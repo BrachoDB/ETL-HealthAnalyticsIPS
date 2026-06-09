@@ -94,8 +94,37 @@ class ETLRunView(APIView):
             return Response({'detail': str(e)}, status=500)
 
 
+class ETLHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        qs = ETLRun.objects.all().order_by('-created_at')
+
+        # Historial por usuario (requisito típico de JWT/roles)
+        qs = qs.filter(user=request.user)
+
+        limit = int(request.query_params.get('limit', '50'))
+        limit = max(1, min(limit, 200))
+
+        data = list(
+            qs.values(
+                'id',
+                'created_at',
+                'source_filename',
+                'status',
+                'duration_ms',
+                'records_processed',
+                'records_loaded',
+                'error_detail',
+            )
+        )[:limit]
+
+        return Response({'count': qs.count(), 'results': data})
+
+
 class PacientesView(APIView):
     permission_classes = [IsAuthenticated]
+
 
     def get(self, request, *args, **kwargs):
         qs = ClinicalRecord.objects.all()
@@ -140,4 +169,7 @@ class PacientesView(APIView):
         )[:limit]
 
         return Response({'count': qs.count(), 'results': data})
+
+
+
 

@@ -1,0 +1,10 @@
+/* Dashboard specifics (no Bootstrap) */
+
+.muted{opacity:.9;}
+
+.grid__header{gap:10px;}
+
+@media (prefers-reduced-motion: reduce){
+  *{scroll-behavior:auto;transition:none;animation:none;}
+}
+
