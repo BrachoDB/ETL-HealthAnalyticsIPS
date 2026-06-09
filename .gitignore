@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+
+env/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# Node (frontend)
+node_modules/
+.dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / env files
+.env
+.env.*
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Artifacts
+ml_artifacts/
+
