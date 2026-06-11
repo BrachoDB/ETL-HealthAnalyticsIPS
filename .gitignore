@@ -1,0 +1,25 @@
+# Git
+.git/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Scikit-learn models (optional, keep if you want models in repo, but usually excluded)
+# backend/apps/ml/saved_models/*.pkl
+
+# Databases
+*.sqlite3
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
