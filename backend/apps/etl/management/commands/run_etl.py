@@ -118,8 +118,32 @@ class Command(BaseCommand):
             end_time = time.time()
             duration = end_time - start_time
             
-            # Registrar Log
+            # ========= BOOTSTRAP USUARIO PRINCIPAL =========
+            # ETLLog depende de un superusuario. Si no existe, lo creamos.
+            admin_username = getattr(settings, 'BOOTSTRAP_ADMIN_USERNAME', 'admin')
+            admin_email = getattr(settings, 'BOOTSTRAP_ADMIN_EMAIL', 'admin@example.com')
+            admin_password = getattr(settings, 'BOOTSTRAP_ADMIN_PASSWORD', 'admin123')
+            admin_role = getattr(settings, 'BOOTSTRAP_ADMIN_ROLE', 'ADMIN')
+
             admin_user = User.objects.filter(is_superuser=True).first()
+            if admin_user is None:
+                admin_user, created = User.objects.get_or_create(
+                    username=admin_username,
+                    defaults={
+                        'email': admin_email,
+                        'role': admin_role,
+                    },
+                )
+                if created:
+                    admin_user.set_password(admin_password)
+
+                admin_user.is_staff = True
+                admin_user.is_superuser = True
+                # Fuerza rol ADMIN si aplica
+                if hasattr(User, 'ADMIN'):
+                    admin_user.role = User.ADMIN
+                admin_user.save()
+
             ETLLog.objects.create(
                 usuario=admin_user,
                 registros_procesados=registros_procesados,
@@ -127,6 +151,7 @@ class Command(BaseCommand):
                 estado='Exitoso',
                 detalles=f'ETL completado exitosamente. {len(df)} registros únicos procesados.'
             )
+            # ==============================================
 
             self.stdout.write(self.style.SUCCESS(f'ETL finalizado. {registros_procesados} registros cargados en {duration:.2f}s'))
 
