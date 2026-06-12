@@ -41,7 +41,7 @@
                 localStorage.setItem('access_token', res.data.access);
                 localStorage.setItem('refresh_token', res.data.refresh);
 
-                await axios.post('/api/auth/session-login/', data);
+                await axios.post('/api/auth/session-login/', formData);
                 window.location.href = '/';
             } catch (error) {
                 alert(error.response?.data?.detail || 'Credenciales inválidas');

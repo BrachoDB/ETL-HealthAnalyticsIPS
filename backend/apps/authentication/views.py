@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
+import json
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -27,8 +28,15 @@ class UserDetailView(generics.RetrieveAPIView):
 @csrf_exempt
 @ensure_csrf_cookie
 def session_login_view(request):
-    username = request.POST.get('username')
-    password = request.POST.get('password')
+    payload = request.POST.dict()
+    if not payload and request.content_type == 'application/json':
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            payload = {}
+
+    username = payload.get('username')
+    password = payload.get('password')
     user = authenticate(request, username=username, password=password)
 
     if user is None:
