@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from rest_framework import generics, permissions
 from rest_framework.response import Response
@@ -24,6 +24,7 @@ class UserDetailView(generics.RetrieveAPIView):
 
 
 @require_POST
+@csrf_exempt
 @ensure_csrf_cookie
 def session_login_view(request):
     username = request.POST.get('username')
