@@ -11,7 +11,7 @@ REQUIRED_COLUMNS = [
     'peso',
     'altura',
     'presión_sistólica',
-    'presion_diastolica',
+    'presión_diastólica',
     'frecuencia_cardiaca',
     'glucosa',
     'colesterol',

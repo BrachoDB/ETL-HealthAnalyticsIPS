@@ -56,7 +56,7 @@ class KPIView(APIView):
             grouped.setdefault(grupo, {risk: 0 for risk in RISK_ORDER})
             grouped[grupo][riesgo] = grouped[grupo].get(riesgo, 0) + 1
 
-        labels = sorted(grouped.keys(), key=lambda value: int(value.split('-')[0]))
+        labels = sorted(grouped.keys(), key=self._edad_grupo_sort_key)
         datasets = []
         for risk in RISK_ORDER:
             datasets.append({
@@ -68,6 +68,11 @@ class KPIView(APIView):
             'labels': labels,
             'datasets': datasets,
         }
+
+    def _edad_grupo_sort_key(self, value):
+        if value.endswith('+'):
+            return int(value[:-1])
+        return int(value.split('-')[0])
 
     def _edad_grupo(self, edad):
         edad = int(edad or 0)
