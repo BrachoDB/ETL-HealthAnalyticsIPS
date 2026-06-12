@@ -1,72 +1,89 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-import joblib
-import os
-from django.conf import settings
+
 from apps.etl.models import Patient
+from apps.ml.models import MLModelMetrics
+from apps.ml.services import get_feature_names_path, get_label_encoder_path, get_model_path
+
+
+FEATURES = [
+    'edad',
+    'imc',
+    'presion_sistolica',
+    'presion_diastolica',
+    'frecuencia_cardiaca',
+    'glucosa',
+    'colesterol',
+    'saturacion_oxigeno',
+    'temperatura',
+    'antecedentes_familiares',
+    'fumador',
+    'consumo_alcohol',
+]
+
 
 def train_model():
-    # 1. Cargar datos desde la BD
     patients = Patient.objects.all().values()
-    if not patients:
-        print("No hay datos en la BD para entrenar.")
-        return
-    
+    if patients.count() == 0:
+        print('No hay datos en la BD para entrenar.')
+        return None
+
     df = pd.DataFrame(list(patients))
-    
-    # 2. Preprocesamiento
-    # Seleccionamos variables predictoras
-    features = [
-        'edad', 'imc', 'presion_sistolica', 'presion_diastolica', 
-        'frecuencia_cardiaca', 'glucosa', 'colesterol', 
-        'saturacion_oxigeno', 'temperatura', 'antecedentes_familiares', 
-        'fumador', 'consumo_alcohol'
-    ]
-    
-    X = df[features]
+    if len(df) < 10:
+        print('Se requieren al menos 10 registros para entrenar el modelo.')
+        return None
+
+    X = df[FEATURES]
     y = df['riesgo_enfermedad']
-    
-    # Encode target
+    if y.nunique() < 2:
+        print('Se requieren al menos dos clases de riesgo para entrenar el modelo.')
+        return None
+
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
-    
-    # Encode categoricals in X (if any were strings, but here they are bool/float)
-    # antecedentes_familiares, fumador, consumo_alcohol are already bool/int
-    
-    # 3. Split
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
-    
-    # 4. Train
+
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
-    
-    # 5. Evaluate
+
     y_pred = model.predict(X_test)
-    
     metrics = {
         'accuracy': accuracy_score(y_test, y_pred),
-        'precision': precision_score(y_test, y_pred, average='weighted'),
-        'recall': recall_score(y_test, y_pred, average='weighted'),
-        'f1': f1_score(y_test, y_pred, average='weighted'),
-        'confusion_matrix': confusion_matrix(y_test, y_pred).tolist()
+        'precision': precision_score(y_test, y_pred, average='weighted', zero_division=0),
+        'recall': recall_score(y_test, y_pred, average='weighted', zero_division=0),
+        'f1': f1_score(y_test, y_pred, average='weighted', zero_division=0),
+        'confusion_matrix': confusion_matrix(y_test, y_pred).tolist(),
     }
-    
-    print(f"Accuracy: {metrics['accuracy']}")
-    
-    # 6. Save Model and Encoder
-    ml_dir = os.path.join(settings.BASE_DIR, 'apps', 'ml', 'saved_models')
-    os.makedirs(ml_dir, exist_ok=True)
-    
-    joblib.dump(model, os.path.join(ml_dir, 'random_forest_model.pkl'))
-    joblib.dump(le, os.path.join(ml_dir, 'label_encoder.pkl'))
-    joblib.dump(features, os.path.join(ml_dir, 'feature_names.pkl'))
-    
+
+    model_path = get_model_path()
+    label_encoder_path = get_label_encoder_path()
+    feature_names_path = get_feature_names_path()
+
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    model.fit(X, y_encoded)
+    import joblib
+
+    joblib.dump(model, model_path)
+    joblib.dump(le, label_encoder_path)
+    joblib.dump(FEATURES, feature_names_path)
+
+    record = MLModelMetrics.objects.create(
+        model_name='random_forest',
+        model_path=str(model_path),
+        accuracy=metrics['accuracy'],
+        precision=metrics['precision'],
+        recall=metrics['recall'],
+        f1_score=metrics['f1'],
+        confusion_matrix=metrics['confusion_matrix'],
+        feature_names=FEATURES,
+    )
+    metrics['model_path'] = str(model_path)
+    metrics['record_id'] = record.id
     return metrics
 
-if __name__ == "__main__":
-    # This is for testing standalone, but usually called from a command
+
+if __name__ == '__main__':
     pass
