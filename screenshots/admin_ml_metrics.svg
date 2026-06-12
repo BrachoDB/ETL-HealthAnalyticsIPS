@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#f8f9fa"/>
+  <text x="40" y="55" fill="#212529" font-size="30" font-family="Arial">Admin - Métricas del modelo ML</text>
+  <rect x="40" y="110" width="1040" height="90" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="70" y="150" fill="#212529" font-size="18" font-family="Arial">Modelo: random_forest</text>
+  <text x="70" y="178" fill="#212529" font-size="18" font-family="Arial">Accuracy: 0.9231 | Precision: 0.9184 | Recall: 0.9205 | F1: 0.9194</text>
+  <rect x="40" y="240" width="220" height="70" rx="10" fill="#6f42c1"/>
+  <text x="75" y="283" fill="white" font-size="18" font-family="Arial">Re-entrenar</text>
+  <rect x="40" y="360" width="1040" height="160" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="70" y="405" fill="#212529" font-size="18" font-family="Arial">Confusion matrix</text>
+  <rect x="70" y="435" width="120" height="50" fill="#28a745"/>
+  <rect x="205" y="435" width="120" height="50" fill="#ffc107"/>
+  <rect x="340" y="435" width="120" height="50" fill="#fd7e14"/>
+  <rect x="475" y="435" width="120" height="50" fill="#dc3545"/>
+</svg>

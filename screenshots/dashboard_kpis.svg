@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#f8f9fa"/>
+  <rect width="220" height="700" fill="#212529"/>
+  <text x="40" y="60" fill="white" font-size="24" font-family="Arial">HealthAnalytics</text>
+  <text x="40" y="110" fill="#cbd3da" font-size="18" font-family="Arial">Dashboard</text>
+  <text x="40" y="150" fill="#cbd3da" font-size="18" font-family="Arial">API Docs</text>
+  <text x="260" y="55" fill="#212529" font-size="30" font-family="Arial">Panel de Control Analítica Clínica</text>
+  <rect x="260" y="90" width="180" height="42" rx="8" fill="#0d6efd"/>
+  <text x="300" y="118" fill="white" font-size="16" font-family="Arial">Ejecutar ETL</text>
+  <rect x="460" y="90" width="150" height="42" rx="8" fill="#0d6efd" opacity="0.15"/>
+  <text x="485" y="118" fill="#0d6efd" font-size="16" font-family="Arial">Exportar Excel</text>
+  <rect x="630" y="90" width="130" height="42" rx="8" fill="#198754" opacity="0.15"/>
+  <text x="655" y="118" fill="#198754" font-size="16" font-family="Arial">Exportar CSV</text>
+  <rect x="780" y="90" width="130" height="42" rx="8" fill="#dc3545" opacity="0.15"/>
+  <text x="805" y="118" fill="#dc3545" font-size="16" font-family="Arial">Exportar PDF</text>
+  <rect x="260" y="160" width="180" height="90" rx="10" fill="#0d6efd"/>
+  <text x="285" y="195" fill="white" font-size="18" font-family="Arial">Total Pacientes</text>
+  <text x="285" y="230" fill="white" font-size="28" font-family="Arial">1800</text>
+  <rect x="470" y="160" width="180" height="90" rx="10" fill="#dc3545"/>
+  <text x="495" y="195" fill="white" font-size="18" font-family="Arial">Críticos</text>
+  <text x="495" y="230" fill="white" font-size="28" font-family="Arial">120</text>
+  <rect x="680" y="160" width="180" height="90" rx="10" fill="#ffc107"/>
+  <text x="705" y="195" fill="#212529" font-size="18" font-family="Arial">Hipertensos</text>
+  <text x="705" y="230" fill="#212529" font-size="28" font-family="Arial">310</text>
+  <rect x="890" y="160" width="180" height="90" rx="10" fill="#0dcaf0"/>
+  <text x="915" y="195" fill="white" font-size="18" font-family="Arial">IMC Promedio</text>
+  <text x="915" y="230" fill="white" font-size="28" font-family="Arial">27.4</text>
+  <rect x="260" y="290" width="300" height="260" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="285" y="325" fill="#212529" font-size="20" font-family="Arial">Distribución de Riesgo</text>
+  <circle cx="360" cy="455" r="70" fill="#28a745"/>
+  <circle cx="430" cy="455" r="70" fill="#ffc107"/>
+  <circle cx="500" cy="455" r="70" fill="#dc3545"/>
+  <rect x="620" y="290" width="420" height="260" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="645" y="325" fill="#212529" font-size="20" font-family="Arial">Edad vs Riesgo</text>
+  <rect x="660" y="380" width="35" height="110" fill="#28a745"/>
+  <rect x="710" y="350" width="35" height="140" fill="#ffc107"/>
+  <rect x="760" y="320" width="35" height="170" fill="#fd7e14"/>
+  <rect x="810" y="295" width="35" height="195" fill="#dc3545"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#f8f9fa"/>
+  <text x="40" y="55" fill="#212529" font-size="30" font-family="Arial">Documentación API</text>
+  <rect x="40" y="100" width="1040" height="80" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="70" y="150" fill="#212529" font-size="20" font-family="Arial">GET /api/analytics/kpis/</text>
+  <rect x="40" y="210" width="1040" height="80" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="70" y="260" fill="#212529" font-size="20" font-family="Arial">POST /api/ml/predict/</text>
+  <rect x="40" y="320" width="1040" height="80" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="70" y="370" fill="#212529" font-size="20" font-family="Arial">POST /api/ml/predict/batch/</text>
+  <rect x="40" y="430" width="1040" height="80" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="70" y="480" fill="#212529" font-size="20" font-family="Arial">POST /api/pacientes/upload-csv/</text>
+  <rect x="40" y="540" width="1040" height="80" rx="10" fill="white" stroke="#dee2e6"/>
+  <text x="70" y="590" fill="#212529" font-size="20" font-family="Arial">GET /api/analytics/export/&lt;formato&gt;/</text>
+</svg>
