@@ -97,7 +97,7 @@ class PatientExportView(APIView):
         if not pacientes:
             return Response({'error': 'No hay datos para exportar'}, status=status.HTTP_404_NOT_FOUND)
 
-        df = pd.DataFrame(pacientes)
+        df = self._prepare_export_dataframe(pd.DataFrame(pacientes))
         export_format = export_format.lower()
         filename = f'pacientes_{date.today().strftime("%Y%m%d")}'
 
@@ -123,7 +123,6 @@ class PatientExportView(APIView):
                 fig.text(0.08, 0.90, f'Fecha: {date.today().strftime("%d/%m/%Y")}', fontsize=11)
                 fig.text(0.08, 0.86, f'Total pacientes: {len(df)}', fontsize=11)
                 fig.text(0.08, 0.80, 'Columnas exportadas: ' + ', '.join(df.columns), fontsize=9, wrap=True)
-                fig.axis('off')
                 pdf.savefig(fig)
                 plt.close(fig)
             response = HttpResponse(output.getvalue(), content_type='application/pdf')
@@ -131,3 +130,13 @@ class PatientExportView(APIView):
             return response
 
         return Response({'error': 'Formato no soportado'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def _prepare_export_dataframe(self, df):
+        df = df.copy()
+        for column in df.columns:
+            if str(df[column].dtype).startswith('datetime'):
+                if getattr(df[column].dt, 'tz', None) is not None:
+                    df[column] = df[column].dt.tz_convert(None).dt.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    df[column] = df[column].dt.strftime('%Y-%m-%d %H:%M:%S')
+        return df
