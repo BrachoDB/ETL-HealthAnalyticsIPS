@@ -35,3 +35,22 @@ Métricas evaluadas: Accuracy, Precision, Recall, F1-Score.
 4. Ejecutar ETL: `python manage.py run_etl`
 5. Entrenar ML: `python manage.py train_ml`
 6. Iniciar servidor: `python manage.py runserver`
+
+## Uso de `.env` para pruebas locales
+Cuando el proyecto se ejecuta de forma **local**, es recomendable usar un archivo **`.env`** para administrar variables sensibles (por ejemplo, credenciales de base de datos o claves de seguridad) sin “hardcodearlas” dentro del código.
+
+### ¿Qué es `.env`?
+Es un archivo de texto que contiene pares `VARIABLE=valor` y que la aplicación lee al iniciar. Así, puedes cambiar la configuración para cada entorno (local, desarrollo, producción) sin modificar el código.
+
+### ¿Cómo configurarlo para pruebas locales?
+1. Crea el archivo `backend/.env` en la raíz del backend.
+2. Define allí las variables requeridas por Django y la base de datos (por ejemplo, conexión MySQL y, si aplica, `SECRET_KEY`).
+3. Antes de correr el proyecto, asegúrate de haber creado el archivo `.env` correctamente.
+
+### Recomendaciones
+- **No subas** el archivo `.env` al repositorio (debe mantenerse como información local).
+- La configuración local debe hacerse antes de ejecutar comandos como:
+  - `python manage.py migrate`
+  - `python manage.py run_etl`
+  - `python manage.py runserver`
+
