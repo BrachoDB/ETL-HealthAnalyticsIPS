@@ -12,7 +12,8 @@
 <body>
     <div class="login-card">
         <h3 class="text-center mb-4">Iniciar Sesión</h3>
-        <form id="loginForm">
+        <form id="loginForm" method="post">
+            {% csrf_token %}
             <div class="mb-3">
                 <label class="form-label">Usuario</label>
                 <input type="text" class="form-control" name="username" required>
@@ -27,23 +28,23 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        axios.defaults.xsrfCookieName = 'csrftoken';
+        axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
-            
+
             try {
                 const res = await axios.post('/api/auth/login/', data);
                 localStorage.setItem('access_token', res.data.access);
                 localStorage.setItem('refresh_token', res.data.refresh);
-                
-                // Also login session for Django @login_required
-                // Note: In a real decoupled app, we only use tokens. 
-                // Here we might need a session login if using standard views.
-                // For simplicity, I'll redirect and assume the API handles auth.
+
+                await axios.post('/api/auth/session-login/', data);
                 window.location.href = '/';
             } catch (error) {
-                alert('Credenciales inválidas');
+                alert(error.response?.data?.detail || 'Credenciales inválidas');
             }
         });
     </script>
