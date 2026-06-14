@@ -66,6 +66,21 @@
     </div>
 </div>
 
+<div class="row g-4 mb-4">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3 h-100">
+            <h5>Alertas de Pacientes Críticos</h5>
+            <ul id="listaCriticos" class="list-group list-group-flush small"></ul>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3 h-100">
+            <h5>Métricas del Modelo ML</h5>
+            <div id="mlMetricas" class="text-muted">Cargando métricas...</div>
+        </div>
+    </div>
+</div>
+
 <div class="row mb-4">
     <div class="col-lg-6 mb-4 mb-lg-0">
         <div class="card p-3">
@@ -77,6 +92,30 @@
         <div class="card p-3">
             <h5>Edad vs Riesgo Clínico</h5>
             <canvas id="chartEdadRiesgo"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3">
+            <h5>Tendencias Clínicas</h5>
+            <canvas id="chartTendencias"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3">
+            <h5>Heatmap Edad vs Riesgo</h5>
+            <div id="heatmapEdadRiesgo" class="table-responsive small"></div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card p-3">
+            <h5>Segmentación de Pacientes</h5>
+            <div id="segmentacionPacientes" class="table-responsive"></div>
         </div>
     </div>
 </div>
@@ -170,6 +209,7 @@
 
             loadRiskChart(data.riesgo_distribucion);
             loadAgeRiskChart(data.edad_riesgo);
+            loadDashboardExtras();
             loadLogs();
         } catch (error) {
             console.error(error);
@@ -217,6 +257,123 @@
                 }
             }
         });
+    }
+
+    async function loadDashboardExtras() {
+        try {
+            const res = await axios.get('/api/analytics/dashboard-extras/');
+            const data = res.data;
+            loadTrendChart(data.tendencias);
+            loadHeatmap(data.heatmap);
+            loadCriticalAlerts(data.criticos);
+            loadSegmentation(data.segmentacion);
+            loadMLMetrics(data.ml_metricas);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function loadTrendChart(trends) {
+        const ctx = document.getElementById('chartTendencias').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trends.labels,
+                datasets: trends.datasets
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true },
+                    y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+
+    function loadHeatmap(heatmap) {
+        const container = document.getElementById('heatmapEdadRiesgo');
+        const header = `<div class="row g-1 mb-1"><div class="col-4 fw-bold">Edad</div>${heatmap.risks.map(risk => `<div class="col-2 text-center fw-bold">${risk}</div>`).join('')}</div>`;
+        const rows = heatmap.labels.map(label => {
+            const index = heatmap.labels.indexOf(label);
+            const values = heatmap.matrix[index] || [];
+            const cells = values.map(value => {
+                const intensity = Math.min(1, value / Math.max(...heatmap.matrix.flat(), 1));
+                const color = `rgba(220, 53, 69, ${0.15 + intensity * 0.75})`;
+                return `<div class="col-2 text-center border rounded py-1" style="background:${color}">${value}</div>`;
+            }).join('');
+            return `<div class="row g-1 mb-1"><div class="col-4">${label}</div>${cells}</div>`;
+        }).join('');
+        container.innerHTML = header + rows;
+    }
+
+    function loadCriticalAlerts(criticos) {
+        const list = document.getElementById('listaCriticos');
+        if (!criticos.length) {
+            list.innerHTML = '<li class="list-group-item text-success">No hay alertas críticas activas</li>';
+            return;
+        }
+        list.innerHTML = criticos.map(paciente => `
+            <li class="list-group-item">
+                <strong>${paciente.nombres} ${paciente.apellidos}</strong> - ${paciente.riesgo_enfermedad}<br>
+                <span class="text-danger">PA ${paciente.presion_sistolica}</span> |
+                Glucosa ${paciente.glucosa} |
+                Sat. O2 ${paciente.saturacion_oxigeno}
+            </li>
+        `).join('');
+    }
+
+    function loadSegmentation(segmentacion) {
+        const container = document.getElementById('segmentacionPacientes');
+        const sections = [
+            { title: 'Por sexo', rows: segmentacion.sexo },
+            { title: 'Por riesgo', rows: segmentacion.riesgo },
+            { title: 'Por diagnóstico', rows: segmentacion.diagnostico },
+        ];
+        container.innerHTML = sections.map(section => `
+            <div class="card mb-3">
+                <div class="card-header">${section.title}</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Categoría</th>
+                                <th>Total</th>
+                                <th>Críticos</th>
+                                <th>IMC promedio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${section.rows.map(row => `
+                                <tr>
+                                    <td>${row.label}</td>
+                                    <td>${row.total}</td>
+                                    <td>${row.criticos}</td>
+                                    <td>${row.imc_promedio}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function loadMLMetrics(metricas) {
+        const container = document.getElementById('mlMetricas');
+        if (!metricas) {
+            container.innerHTML = 'No hay métricas registradas. Ejecute <strong>train_ml</strong>.';
+            return;
+        }
+        container.innerHTML = `
+            <div class="row g-2 text-center">
+                <div class="col-6"><div class="border rounded p-2"><strong>${metricas.accuracy}</strong><br><small>Accuracy</small></div></div>
+                <div class="col-6"><div class="border rounded p-2"><strong>${metricas.precision}</strong><br><small>Precision</small></div></div>
+                <div class="col-6"><div class="border rounded p-2"><strong>${metricas.recall}</strong><br><small>Recall</small></div></div>
+                <div class="col-6"><div class="border rounded p-2"><strong>${metricas.f1_score}</strong><br><small>F1</small></div></div>
+            </div>
+            <div class="small mt-2 text-muted">Modelo: ${metricas.model_name} | Entrenado: ${metricas.trained_at}</div>
+        `;
     }
 
     async function loadLogs() {

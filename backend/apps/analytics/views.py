@@ -9,10 +9,11 @@ from django.http import HttpResponse
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Count, Avg
+from django.db.models import Avg, Count, Q
 from matplotlib.backends.backend_pdf import PdfPages
 
 from apps.etl.models import Patient
+from apps.ml.models import MLModelMetrics
 
 
 RISK_ORDER = ['Bajo', 'Medio', 'Alto', 'Crítico']
@@ -87,6 +88,161 @@ class KPIView(APIView):
         if edad < 75:
             return '60-74'
         return '75+'
+
+
+class DashboardExtrasView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            'tendencias': self._tendencias(),
+            'heatmap': self._heatmap(),
+            'criticos': self._criticos(),
+            'segmentacion': self._segmentacion(),
+            'ml_metricas': self._ml_metricas(),
+        })
+
+    def _edad_grupo_sort_key(self, value):
+        if value.endswith('+'):
+            return int(value[:-1])
+        return int(value.split('-')[0])
+
+    def _edad_grupo(self, edad):
+        edad = int(edad or 0)
+        if edad < 18:
+            return '0-17'
+        if edad < 30:
+            return '18-29'
+        if edad < 45:
+            return '30-44'
+        if edad < 60:
+            return '45-59'
+        if edad < 75:
+            return '60-74'
+        return '75+'
+
+    def _tendencias(self):
+        rows = (
+            Patient.objects
+            .values('fecha_consulta')
+            .annotate(
+                total=Count('id'),
+                criticos=Count('id', filter=Q(riesgo_enfermedad='Crítico')),
+                promedio_glucosa=Avg('glucosa'),
+                promedio_presion=Avg('presion_sistolica'),
+            )
+            .order_by('fecha_consulta')
+        )
+        return {
+            'labels': [row['fecha_consulta'].isoformat() for row in rows],
+            'datasets': [
+                {
+                    'label': 'Total pacientes',
+                    'data': [row['total'] for row in rows],
+                    'borderColor': '#0d6efd',
+                    'backgroundColor': 'rgba(13, 110, 253, 0.15)',
+                },
+                {
+                    'label': 'Críticos',
+                    'data': [row['criticos'] for row in rows],
+                    'borderColor': '#dc3545',
+                    'backgroundColor': 'rgba(220, 53, 69, 0.15)',
+                },
+                {
+                    'label': 'Glucosa promedio',
+                    'data': [round(row['promedio_glucosa'] or 0, 2) for row in rows],
+                    'borderColor': '#198754',
+                    'backgroundColor': 'rgba(25, 135, 84, 0.15)',
+                    'yAxisID': 'y1',
+                },
+            ],
+        }
+
+    def _heatmap(self):
+        grouped = {}
+        for paciente in Patient.objects.values('edad', 'riesgo_enfermedad'):
+            edad_grupo = self._edad_grupo(paciente['edad'])
+            riesgo = paciente['riesgo_enfermedad'] or 'Bajo'
+            grouped.setdefault(edad_grupo, {risk: 0 for risk in RISK_ORDER})
+            grouped[edad_grupo][riesgo] = grouped[edad_grupo].get(riesgo, 0) + 1
+
+        labels = sorted(grouped.keys(), key=self._edad_grupo_sort_key)
+        matrix = [[grouped[label].get(risk, 0) for risk in RISK_ORDER] for label in labels]
+        return {
+            'labels': labels,
+            'risks': RISK_ORDER,
+            'matrix': matrix,
+        }
+
+    def _criticos(self):
+        queryset = Patient.objects.filter(
+            Q(presion_sistolica__gt=180) |
+            Q(glucosa__gt=300) |
+            Q(saturacion_oxigeno__lt=85) |
+            Q(riesgo_enfermedad='Crítico')
+        ).order_by('-presion_sistolica', '-glucosa')[:10]
+
+        return [
+            {
+                'id_paciente': paciente['id_paciente'],
+                'nombres': paciente['nombres'],
+                'apellidos': paciente['apellidos'],
+                'riesgo_enfermedad': paciente['riesgo_enfermedad'],
+                'presion_sistolica': paciente['presion_sistolica'],
+                'glucosa': paciente['glucosa'],
+                'saturacion_oxigeno': paciente['saturacion_oxigeno'],
+            }
+            for paciente in queryset.values(
+                'id_paciente',
+                'nombres',
+                'apellidos',
+                'riesgo_enfermedad',
+                'presion_sistolica',
+                'glucosa',
+                'saturacion_oxigeno',
+            )
+        ]
+
+    def _segmentacion(self):
+        return {
+            'sexo': self._segmentar_por('sexo'),
+            'riesgo': self._segmentar_por('riesgo_enfermedad'),
+            'diagnostico': self._segmentar_por('diagnostico_preliminar')[:8],
+        }
+
+    def _segmentar_por(self, campo):
+        rows = (
+            Patient.objects
+            .values(campo)
+            .annotate(
+                total=Count('id'),
+                criticos=Count('id', filter=Q(riesgo_enfermedad='Crítico')),
+                imc_promedio=Avg('imc'),
+            )
+            .order_by('-total')
+        )
+        return [
+            {
+                'label': row[campo] or 'Sin dato',
+                'total': row['total'],
+                'criticos': row['criticos'],
+                'imc_promedio': round(row['imc_promedio'] or 0, 2),
+            }
+            for row in rows
+        ]
+
+    def _ml_metricas(self):
+        metrica = MLModelMetrics.objects.order_by('-trained_at').first()
+        if not metrica:
+            return None
+        return {
+            'model_name': metrica.model_name,
+            'accuracy': round(metrica.accuracy, 4),
+            'precision': round(metrica.precision, 4),
+            'recall': round(metrica.recall, 4),
+            'f1_score': round(metrica.f1_score, 4),
+            'trained_at': metrica.trained_at.strftime('%Y-%m-%d %H:%M:%S'),
+        }
 
 
 class PatientExportView(APIView):
