@@ -3,7 +3,7 @@
 {% block title %}Dashboard - HealthAnalytics IPS{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+<div id="reportes" class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Panel de Control Analítica Clínica</h1>
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">
         <button type="button" class="btn btn-sm btn-primary" id="btnRunEtl">
@@ -21,7 +21,7 @@
     </div>
 </div>
 
-<div class="card mb-4">
+<div id="procesoEtl" class="card mb-4">
     <div class="card-body">
         <h5 class="card-title">Carga manual de CSV clínico</h5>
         <form id="formUploadCsv" class="row g-3 align-items-end" enctype="multipart/form-data">
@@ -81,7 +81,7 @@
     </div>
 </div>
 
-<div class="row mb-4">
+<div id="analitica" class="row mb-4">
     <div class="col-lg-6 mb-4 mb-lg-0">
         <div class="card p-3">
             <h5>Distribución de Riesgo Clínico</h5>
@@ -92,6 +92,21 @@
         <div class="card p-3">
             <h5>Edad vs Riesgo Clínico</h5>
             <canvas id="chartEdadRiesgo"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3">
+            <h5>Diagnósticos Preliminares</h5>
+            <canvas id="chartDiagnosticos"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3">
+            <h5>Tendencia Mensual de Riesgo</h5>
+            <canvas id="chartMensual"></canvas>
         </div>
     </div>
 </div>
@@ -120,7 +135,26 @@
     </div>
 </div>
 
-<div class="row mb-4">
+<div id="pacientes" class="row mb-4">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3">
+            <h5>Estadística Descriptiva</h5>
+            <div id="estadisticaDescriptiva" class="table-responsive"></div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card p-3">
+            <h5>Pacientes Recientes</h5>
+            <div class="input-group mb-3">
+                <input id="filtroPacientes" type="search" class="form-control" placeholder="Buscar paciente, diagnóstico o riesgo">
+                <button class="btn btn-outline-secondary" type="button" id="btnLimpiarFiltro">Limpiar</button>
+            </div>
+            <div id="tablaPacientes" class="table-responsive"></div>
+        </div>
+    </div>
+</div>
+
+<div id="machineLearning" class="row mb-4">
     <div class="col-12">
         <div class="card p-3">
             <h5>Predicción de Riesgo (ML)</h5>
@@ -164,8 +198,7 @@
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
+<div id="historial" class="card mb-4">
         <span>Histórico de Ejecuciones ETL</span>
         <button class="btn btn-sm btn-outline-secondary" id="btnRefreshLogs"><i class="bi bi-arrow-clockwise"></i></button>
     </div>
@@ -196,6 +229,7 @@
         'Alto': '#fd7e14',
         'Crítico': '#dc3545'
     };
+    let pacientesRecientes = [];
 
     async function loadData() {
         try {
@@ -259,12 +293,137 @@
         });
     }
 
+    function loadDiagnosticoChart(diagnosticos) {
+        const ctx = document.getElementById('chartDiagnosticos').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: diagnosticos.labels,
+                datasets: [{
+                    label: 'Pacientes',
+                    data: diagnosticos.data,
+                    backgroundColor: '#0dcaf0'
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y'
+            }
+        });
+    }
+
+    function loadMensualChart(mensual) {
+        const ctx = document.getElementById('chartMensual').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: mensual.labels,
+                datasets: mensual.datasets
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true },
+                    y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+
+    function loadEstadisticaDescriptiva(estadistica) {
+        const container = document.getElementById('estadisticaDescriptiva');
+        container.innerHTML = `
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Media</th>
+                        <th>Mediana</th>
+                        <th>Moda</th>
+                        <th>Desv.</th>
+                        <th>Mín</th>
+                        <th>Máx</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${estadistica.map(row => `
+                        <tr>
+                            <td>${row.variable}</td>
+                            <td>${row.media}</td>
+                            <td>${row.mediana}</td>
+                            <td>${row.moda}</td>
+                            <td>${row.desviacion}</td>
+                            <td>${row.min}</td>
+                            <td>${row.max}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function loadPacientes(pacientes) {
+        pacientesRecientes = pacientes;
+        renderPacientes(pacientes);
+    }
+
+    function renderPacientes(pacientes) {
+        const query = document.getElementById('filtroPacientes').value.toLowerCase();
+        const filtered = pacientes.filter(paciente => {
+            const text = `${paciente.nombres} ${paciente.apellidos} ${paciente.diagnostico_preliminar} ${paciente.riesgo_enfermedad}`.toLowerCase();
+            return text.includes(query);
+        });
+        const container = document.getElementById('tablaPacientes');
+        if (!filtered.length) {
+            container.innerHTML = '<div class="alert alert-info mb-0">No hay pacientes para mostrar</div>';
+            return;
+        }
+        container.innerHTML = `
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Paciente</th>
+                        <th>Edad</th>
+                        <th>Sexo</th>
+                        <th>Diagnóstico</th>
+                        <th>Riesgo</th>
+                        <th>PAS</th>
+                        <th>Glucosa</th>
+                        <th>Sat. O2</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filtered.map(paciente => `
+                        <tr>
+                            <td>${paciente.id_paciente}</td>
+                            <td>${paciente.nombres} ${paciente.apellidos}</td>
+                            <td>${paciente.edad}</td>
+                            <td>${paciente.sexo}</td>
+                            <td>${paciente.diagnostico_preliminar}</td>
+                            <td><span class="badge" style="background:${riskColors[paciente.riesgo_enfermedad] || '#6c757d'}">${paciente.riesgo_enfermedad}</span></td>
+                            <td>${paciente.presion_sistolica}</td>
+                            <td>${paciente.glucosa}</td>
+                            <td>${paciente.saturacion_oxigeno}</td>
+                            <td>${paciente.fecha_consulta}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
     async function loadDashboardExtras() {
         try {
             const res = await axios.get('/api/analytics/dashboard-extras/');
             const data = res.data;
             loadTrendChart(data.tendencias);
             loadHeatmap(data.heatmap);
+            loadDiagnosticoChart(data.diagnosticos);
+            loadMensualChart(data.mensual);
+            loadEstadisticaDescriptiva(data.estadistica);
+            loadPacientes(data.pacientes);
             loadCriticalAlerts(data.criticos);
             loadSegmentation(data.segmentacion);
             loadMLMetrics(data.ml_metricas);
@@ -483,6 +642,11 @@
 
     document.getElementById('formUploadCsv').addEventListener('submit', uploadCsv);
     document.getElementById('btnRefreshLogs').addEventListener('click', loadLogs);
+    document.getElementById('filtroPacientes').addEventListener('input', () => renderPacientes(pacientesRecientes));
+    document.getElementById('btnLimpiarFiltro').addEventListener('click', () => {
+        document.getElementById('filtroPacientes').value = '';
+        renderPacientes(pacientesRecientes);
+    });
 
     loadData();
 </script>

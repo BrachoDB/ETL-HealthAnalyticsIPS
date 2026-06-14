@@ -1,5 +1,6 @@
 from datetime import date
 from io import BytesIO
+from statistics import mean, median, mode, stdev
 
 import matplotlib
 matplotlib.use('Agg')
@@ -97,6 +98,10 @@ class DashboardExtrasView(APIView):
         return Response({
             'tendencias': self._tendencias(),
             'heatmap': self._heatmap(),
+            'diagnosticos': self._diagnosticos(),
+            'mensual': self._mensual(),
+            'estadistica': self._estadistica_descriptiva(),
+            'pacientes': self._pacientes(),
             'criticos': self._criticos(),
             'segmentacion': self._segmentacion(),
             'ml_metricas': self._ml_metricas(),
@@ -173,6 +178,97 @@ class DashboardExtrasView(APIView):
             'risks': RISK_ORDER,
             'matrix': matrix,
         }
+
+    def _diagnosticos(self):
+        rows = (
+            Patient.objects
+            .values('diagnostico_preliminar')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:10]
+        )
+        return {
+            'labels': [row['diagnostico_preliminar'] for row in rows],
+            'data': [row['count'] for row in rows],
+        }
+
+    def _mensual(self):
+        grouped = {}
+        risk_scores = {'Bajo': 1, 'Medio': 2, 'Alto': 3, 'Crítico': 4}
+        for paciente in Patient.objects.values('fecha_consulta', 'riesgo_enfermedad'):
+            month = paciente['fecha_consulta'].strftime('%Y-%m')
+            grouped.setdefault(month, {'total': 0, 'risk_sum': 0, 'criticos': 0})
+            grouped[month]['total'] += 1
+            grouped[month]['risk_sum'] += risk_scores.get(paciente['riesgo_enfermedad'], 1)
+            if paciente['riesgo_enfermedad'] == 'Crítico':
+                grouped[month]['criticos'] += 1
+
+        labels = sorted(grouped.keys())
+        return {
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Riesgo promedio',
+                    'data': [round(grouped[label]['risk_sum'] / grouped[label]['total'], 2) for label in labels],
+                    'borderColor': '#0d6efd',
+                    'backgroundColor': 'rgba(13, 110, 253, 0.15)',
+                    'yAxisID': 'y',
+                },
+                {
+                    'label': 'Casos críticos',
+                    'data': [grouped[label]['criticos'] for label in labels],
+                    'borderColor': '#dc3545',
+                    'backgroundColor': 'rgba(220, 53, 69, 0.15)',
+                    'yAxisID': 'y1',
+                },
+            ],
+        }
+
+    def _estadistica_descriptiva(self):
+        fields = [
+            ('edad', 'Edad'),
+            ('imc', 'IMC'),
+            ('presion_sistolica', 'Presión sistólica'),
+            ('presion_diastolica', 'Presión diastólica'),
+            ('frecuencia_cardiaca', 'Frecuencia cardiaca'),
+            ('glucosa', 'Glucosa'),
+            ('colesterol', 'Colesterol'),
+            ('saturacion_oxigeno', 'Saturación O2'),
+            ('temperatura', 'Temperatura'),
+        ]
+        stats = []
+        for field, label in fields:
+            values = list(Patient.objects.values_list(field, flat=True))
+            if not values:
+                continue
+            stats.append({
+                'variable': label,
+                'media': round(mean(values), 2),
+                'mediana': round(median(values), 2),
+                'moda': mode(values) if values else None,
+                'desviacion': round(stdev(values), 2) if len(values) > 1 else 0,
+                'min': min(values),
+                'max': max(values),
+            })
+        return stats
+
+    def _pacientes(self):
+        rows = Patient.objects.all().order_by('-fecha_consulta', '-id_paciente')[:100]
+        return [
+            {
+                'id_paciente': row.id_paciente,
+                'nombres': row.nombres,
+                'apellidos': row.apellidos,
+                'edad': row.edad,
+                'sexo': row.sexo,
+                'diagnostico_preliminar': row.diagnostico_preliminar,
+                'riesgo_enfermedad': row.riesgo_enfermedad,
+                'presion_sistolica': row.presion_sistolica,
+                'glucosa': row.glucosa,
+                'saturacion_oxigeno': row.saturacion_oxigeno,
+                'fecha_consulta': row.fecha_consulta.isoformat(),
+            }
+            for row in rows
+        ]
 
     def _criticos(self):
         queryset = Patient.objects.filter(
