@@ -42,8 +42,8 @@ docs/
 8. Iniciar el servidor: `python backend/manage.py runserver`.
 
 ## Endpoints principales
-- `POST /api/pacientes/logs/run/`: ejecuta el ETL por defecto en segundo plano.
-- `POST /api/pacientes/upload-csv/`: sube un CSV clínico y ejecuta el ETL en segundo plano.
+- `POST /api/pacientes/logs/run/`: ejecuta el ETL por defecto.
+- `POST /api/pacientes/upload-csv/`: sube un CSV/Excel clínico y ejecuta el ETL.
 - `GET /api/analytics/kpis/`: retorna KPIs, distribución de riesgo y datos para edad vs riesgo.
 - `GET /api/analytics/export/xlsx/`, `/csv/`, `/pdf/`: exporta pacientes.
 - `POST /api/ml/predict/`: predicción individual.

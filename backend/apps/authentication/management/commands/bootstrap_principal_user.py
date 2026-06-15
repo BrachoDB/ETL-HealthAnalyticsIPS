@@ -1,3 +1,4 @@
+from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
@@ -31,6 +32,8 @@ class Command(BaseCommand):
             # Asegura también role ADMIN si aplica (por seguridad)
             if hasattr(User, 'ADMIN'):
                 user.role = User.ADMIN
+            group, _ = Group.objects.get_or_create(name=user.role)
+            user.groups.add(group)
             user.save()
             self.stdout.write(self.style.SUCCESS(f'Bootstrap: creado superusuario {username}'))
         else:
@@ -47,6 +50,8 @@ class Command(BaseCommand):
                 user.role = role
                 updated = True
             if updated:
+                group, _ = Group.objects.get_or_create(name=user.role)
+                user.groups.add(group)
                 user.save()
                 self.stdout.write(self.style.SUCCESS(f'Bootstrap: actualizado permisos para {username}'))
             else:

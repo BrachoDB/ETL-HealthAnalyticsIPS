@@ -1,5 +1,7 @@
 # Git
 .git/
+.kilo/node_modules/
+.kilo/worktrees/
 
 # Python
 __pycache__/
@@ -12,6 +14,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Generated reports and local artifacts
+*.oxps
+Plan.json
+backend/media/etl_uploads/*
+backend/media/models/*
 
 # Scikit-learn models (optional, keep if you want models in repo, but usually excluded)
 # backend/apps/ml/saved_models/*.pkl

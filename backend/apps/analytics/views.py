@@ -7,12 +7,15 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 from django.http import HttpResponse
-from rest_framework import permissions, status
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import Avg, Count, Q
 from matplotlib.backends.backend_pdf import PdfPages
 
+from apps.analytics.models import ExportAudit
+from apps.analytics.serializers import DashboardExtrasSerializer, KPISerializer, PatientExportFormatSerializer
+from apps.authentication.permissions import CanExportAnalytics, IsReadOnlyClinicalRole
 from apps.etl.models import Patient
 from apps.ml.models import MLModelMetrics
 
@@ -21,7 +24,8 @@ RISK_ORDER = ['Bajo', 'Medio', 'Alto', 'Crítico']
 
 
 class KPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsReadOnlyClinicalRole]
+    serializer_class = KPISerializer
 
     def get(self, request):
         total_pacientes = Patient.objects.count()
@@ -92,7 +96,8 @@ class KPIView(APIView):
 
 
 class DashboardExtrasView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsReadOnlyClinicalRole]
+    serializer_class = DashboardExtrasSerializer
 
     def get(self, request):
         return Response({
@@ -333,6 +338,8 @@ class DashboardExtrasView(APIView):
             return None
         return {
             'model_name': metrica.model_name,
+            'model_version': getattr(metrica, 'model_version', 'random_forest_v1'),
+            'model_hash': getattr(metrica, 'model_hash', None),
             'accuracy': round(metrica.accuracy, 4),
             'precision': round(metrica.precision, 4),
             'recall': round(metrica.recall, 4),
@@ -342,15 +349,24 @@ class DashboardExtrasView(APIView):
 
 
 class PatientExportView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [CanExportAnalytics]
+    serializer_class = PatientExportFormatSerializer
 
     def get(self, request, export_format):
+        export_format = export_format.lower()
         pacientes = list(Patient.objects.all().values())
         if not pacientes:
             return Response({'error': 'No hay datos para exportar'}, status=status.HTTP_404_NOT_FOUND)
 
+        ExportAudit.objects.create(
+            usuario=request.user,
+            export_format=export_format,
+            total_rows=len(pacientes),
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+        )
+
         df = self._prepare_export_dataframe(pd.DataFrame(pacientes))
-        export_format = export_format.lower()
         filename = f'pacientes_{date.today().strftime("%Y%m%d")}'
 
         if export_format == 'xlsx':

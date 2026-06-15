@@ -12,20 +12,20 @@ Al ingresar verá:
 - **KPIs médicos:** total de pacientes, críticos, hipertensos e IMC promedio.
 - **Distribución de riesgo:** gráfico de torta por nivel de riesgo.
 - **Edad vs riesgo:** gráfico de barras agrupado por rango de edad.
-- **Carga manual CSV:** formulario para subir un archivo clínico CSV.
+- **Carga manual CSV/Excel:** formulario para subir un archivo clínico CSV, XLSX o XLS.
 - **Predicción ML:** formulario para predecir el riesgo de un paciente.
 - **Exportaciones:** botones para descargar Excel, CSV o PDF.
 - **Histórico ETL:** tabla con detalle de ejecuciones, duración, estado y observaciones.
 
 ## Ejecución de ETL desde Excel
 1. Haga clic en el botón **"Ejecutar ETL"** en la parte superior derecha.
-2. El proceso se ejecutará en segundo plano.
+2. El proceso se ejecutará directamente y bloqueará la respuesta hasta terminar.
 3. Cuando finalice, actualice el histórico con el botón de refrescar.
 
-## Carga manual de CSV
-1. En la tarjeta **"Carga manual de CSV clínico"**, seleccione un archivo `.csv`.
-2. El CSV debe incluir las columnas clínicas requeridas.
-3. Haga clic en **"Subir CSV y procesar ETL"**.
+## Carga manual de CSV/Excel
+1. En la tarjeta **"Carga manual de CSV o Excel clínico"**, seleccione un archivo `.csv`, `.xlsx` o `.xls`.
+2. El archivo debe incluir las columnas clínicas requeridas.
+3. Haga clic en **"Subir CSV/Excel y procesar ETL"**.
 4. El sistema validará columnas y rangos clínicos antes de cargar los datos.
 
 ### Rangos clínicos válidos

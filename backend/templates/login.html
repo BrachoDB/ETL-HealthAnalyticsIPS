@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <title>Login - HealthAnalytics IPS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; }
-        .login-card { width: 100%; max-width: 400px; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); background: white; }
-    </style>
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
 </head>
 <body>
     <div class="login-card">
@@ -27,26 +25,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script>
-        axios.defaults.xsrfCookieName = 'csrftoken';
-        axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const res = await axios.post('/api/auth/login/', data);
-                localStorage.setItem('access_token', res.data.access);
-                localStorage.setItem('refresh_token', res.data.refresh);
-
-                await axios.post('/api/auth/session-login/', formData);
-                window.location.href = '/';
-            } catch (error) {
-                alert(error.response?.data?.detail || 'Credenciales inválidas');
-            }
-        });
-    </script>
+    <script src="{% static 'js/api-client.js' %}"></script>
+    <script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>

@@ -9,9 +9,9 @@ from apps.ml.training import train_model
 
 @admin.register(MLModelMetrics)
 class MLModelMetricsAdmin(admin.ModelAdmin):
-    list_display = ('model_name', 'accuracy', 'precision', 'recall', 'f1_score', 'trained_at', 'retrain_link')
-    list_filter = ('model_name', 'trained_at')
-    readonly_fields = ('model_name', 'model_path', 'accuracy', 'precision', 'recall', 'f1_score', 'confusion_matrix', 'feature_names', 'trained_at')
+    list_display = ('model_name', 'model_version', 'accuracy', 'precision', 'recall', 'f1_score', 'trained_at', 'retrain_link')
+    list_filter = ('model_name', 'model_version', 'trained_at')
+    readonly_fields = ('model_name', 'model_version', 'model_path', 'model_hash', 'label_encoder_hash', 'feature_names_hash', 'accuracy', 'precision', 'recall', 'f1_score', 'confusion_matrix', 'feature_names', 'trained_at')
     actions = ['reentrenar_modelo']
 
     def retrain_link(self, obj):

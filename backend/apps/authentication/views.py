@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -12,7 +13,7 @@ from .models import User
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.AllowAny if settings.OPEN_REGISTRATION else permissions.IsAdminUser,)
     serializer_class = RegisterSerializer
 
 

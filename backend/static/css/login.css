@@ -1,0 +1,29 @@
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at top left, rgba(13, 110, 253, 0.14), transparent 28rem),
+        linear-gradient(135deg, #f8fafc, #eef6ff);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem;
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    background: white;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.login-card .form-control {
+    background: white;
+}
+
+.login-card .btn {
+    border-radius: 999px;
+    padding: 0.7rem 1rem;
+    font-weight: 700;
+}

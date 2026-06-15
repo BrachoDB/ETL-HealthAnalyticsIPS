@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,85 +7,8 @@
     <title>{% block title %}HealthAnalytics IPS{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        :root {
-            color-scheme: light;
-            --font-sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            --color-bg: oklch(98% 0.01 240);
-            --color-surface: oklch(100% 0 0);
-            --color-surface-muted: oklch(96% 0.01 240);
-            --color-text: oklch(20% 0.02 240);
-            --color-text-muted: oklch(45% 0.02 240);
-            --color-border: oklch(90% 0.02 240);
-            --color-primary: oklch(62% 0.18 205);
-            --color-primary-strong: oklch(48% 0.18 205);
-            --color-teal: oklch(62% 0.16 175);
-            --risk-bajo: oklch(72% 0.12 145);
-            --risk-medio: oklch(78% 0.16 90);
-            --risk-alto: oklch(70% 0.18 45);
-            --risk-critico: oklch(62% 0.22 25);
-            --chart-1: oklch(62% 0.18 205);
-            --chart-2: oklch(62% 0.16 175);
-            --chart-3: oklch(72% 0.12 145);
-            --chart-4: oklch(70% 0.18 45);
-            --chart-5: oklch(62% 0.22 25);
-            --shadow-card: 0 10px 30px oklch(20% 0.04 240 / 0.08);
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                color-scheme: dark;
-                --color-bg: oklch(14% 0.02 240);
-                --color-surface: oklch(20% 0.02 240);
-                --color-surface-muted: oklch(24% 0.02 240);
-                --color-text: oklch(96% 0.01 240);
-                --color-text-muted: oklch(72% 0.02 240);
-                --color-border: oklch(32% 0.02 240);
-                --shadow-card: 0 10px 30px oklch(0% 0 0 / 0.25);
-            }
-        }
-
-        body {
-            background: var(--color-bg);
-            color: var(--color-text);
-            font-family: var(--font-sans);
-        }
-
-        .sidebar {
-            min-height: 100vh;
-            background: var(--color-surface);
-            color: var(--color-text);
-            border-right: 1px solid var(--color-border);
-        }
-
-        .nav-link {
-            color: var(--color-text-muted);
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: var(--color-primary-strong);
-            font-weight: 700;
-        }
-
-        .card {
-            border-radius: 16px;
-            border: 1px solid var(--color-border);
-            background: var(--color-surface);
-            box-shadow: var(--shadow-card);
-        }
-
-        .table {
-            color: var(--color-text);
-        }
-
-        .form-control,
-        .form-select {
-            background: var(--color-surface);
-            color: var(--color-text);
-            border-color: var(--color-border);
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -154,15 +78,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script>
-        axios.defaults.xsrfCookieName = 'csrftoken';
-        axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        }
-    </script>
+    <script src="{% static 'js/api-client.js' %}"></script>
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script src="{% static 'js/charts.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
