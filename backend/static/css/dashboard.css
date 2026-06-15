@@ -11,6 +11,13 @@
     gap: 1rem;
     position: relative;
     overflow: hidden;
+    transition: all 250ms ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px var(--color-primary) / 0.12;
+    border-color: var(--color-primary);
 }
 
 .stat-card::after {
@@ -40,6 +47,8 @@
     color: var(--color-text-muted);
     font-size: 0.82rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
 
 .stat-card strong {
@@ -47,26 +56,44 @@
     font-size: 1.8rem;
     line-height: 1.1;
     margin: 0.15rem 0;
+    font-weight: 900;
 }
 
 .stat-card small {
     color: var(--color-text-muted);
+    font-size: 0.75rem;
 }
 
 .stat-card--blue {
     color: var(--color-primary-strong);
 }
 
+.stat-card--blue .stat-card__icon {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+}
+
 .stat-card--red {
     color: var(--risk-critico);
+}
+
+.stat-card--red .stat-card__icon {
+    background: linear-gradient(135deg, #ff6b6b, var(--risk-critico));
 }
 
 .stat-card--amber {
     color: var(--risk-alto);
 }
 
+.stat-card--amber .stat-card__icon {
+    background: linear-gradient(135deg, #ffa500, var(--risk-alto));
+}
+
 .stat-card--cyan {
     color: var(--color-teal);
+}
+
+.stat-card--cyan .stat-card__icon {
+    background: linear-gradient(135deg, var(--color-teal), #00d4aa);
 }
 
 .risk-badge {
@@ -78,20 +105,46 @@
     padding: 0.25rem 0.65rem;
     color: white;
     font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.risk-badge.bajo {
+    background: var(--risk-bajo);
+}
+
+.risk-badge.medio {
+    background: var(--risk-medio);
+}
+
+.risk-badge.alto {
+    background: var(--risk-alto);
+}
+
+.risk-badge.critico {
+    background: var(--risk-critico);
 }
 
 .upload-result {
     word-break: break-word;
+    padding: 1rem;
+    border-radius: 12px;
+    background: var(--color-surface-muted);
 }
 
 .ml-metric-card {
     border: 1px solid var(--color-border);
     border-radius: 12px;
     background: var(--color-surface-muted);
+    padding: 1rem;
 }
 
 .heatmap-cell {
     transition: background 160ms ease, transform 160ms ease;
+    padding: 0.5rem;
+    text-align: center;
+    border-radius: 6px;
 }
 
 .heatmap-cell:hover {
@@ -101,4 +154,102 @@
 .logs-details {
     max-width: 34rem;
     overflow-wrap: anywhere;
+    word-break: break-word;
 }
+
+/* LIST GROUP */
+.list-group-item {
+    background: var(--color-surface-muted);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+.list-group-item:hover {
+    background: var(--color-surface);
+}
+
+/* ALERT */
+.alert {
+    border-radius: 12px;
+    border: 1px solid;
+}
+
+.alert-info {
+    background: oklch(72% 0.16 205 / 0.1);
+    border-color: var(--color-primary);
+    color: var(--color-primary-strong);
+}
+
+.alert-success {
+    background: oklch(72% 0.12 145 / 0.1);
+    border-color: var(--risk-bajo);
+    color: var(--risk-bajo);
+}
+
+.alert-danger {
+    background: oklch(62% 0.22 25 / 0.1);
+    border-color: var(--risk-critico);
+    color: var(--risk-critico);
+}
+
+.alert-warning {
+    background: oklch(70% 0.18 45 / 0.1);
+    border-color: var(--risk-alto);
+    color: var(--risk-alto);
+}
+
+/* SHORTCUTS */
+.card.text-decoration-none:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 50px var(--color-primary) / 0.15;
+    border-color: var(--color-primary);
+}
+
+/* PROGRESS */
+.progress {
+    background-color: var(--color-surface-muted);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--color-primary), var(--color-teal));
+    transition: width 400ms ease;
+}
+
+.progress-bar.bg-success {
+    background: linear-gradient(90deg, var(--risk-bajo), #00d4aa) !important;
+}
+
+.progress-bar.bg-warning {
+    background: linear-gradient(90deg, var(--risk-alto), var(--risk-medio)) !important;
+}
+
+/* DROPDOWN */
+.dropdown-menu {
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
+    background: var(--color-surface);
+}
+
+.dropdown-item {
+    color: var(--color-text);
+}
+
+.dropdown-item:hover {
+    background: var(--color-surface-muted);
+    color: var(--color-primary-strong);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .stat-card {
+        min-width: 100%;
+    }
+
+    canvas {
+        min-height: 200px;
+    }
+}
+

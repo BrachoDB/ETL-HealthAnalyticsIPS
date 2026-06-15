@@ -8,67 +8,110 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- NAVBAR SUPERIOR -->
+    <nav class="navbar-top">
+        <div class="d-flex align-items-center justify-content-between w-100">
+            <a href="{% url 'dashboard' %}" class="navbar-brand">
+                <i class="bi bi-hospital"></i>
+                <span>HealthAnalytics</span>
+            </a>
+
+            <div class="navbar-center d-none d-md-flex">
+                <div class="breadcrumb">
+                    <a href="{% url 'dashboard' %}" class="breadcrumb-item">Dashboard</a>
+                    <span class="breadcrumb-separator">/</span>
+                    <span class="breadcrumb-item active" id="breadcrumb-current">Panel Principal</span>
+                </div>
+            </div>
+
+            <div class="navbar-right">
+                <div class="dropdown">
+                    <div class="navbar-user" data-bs-toggle="dropdown">
+                        <div class="user-avatar">{{ user.first_name|first|upper }}</div>
+                        <div class="user-info d-none d-md-flex">
+                            <span class="user-name">{{ user.first_name|default:"Usuario" }}</span>
+                            <span class="user-role">Clínico</span>
+                        </div>
+                        <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
+                    </div>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Mi Perfil</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Configuración</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item" style="background: none; border: none; padding: 0.6rem 1rem; text-align: left; cursor: pointer;">
+                                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <div class="container-fluid">
         <div class="row">
+            <!-- SIDEBAR -->
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="position-sticky pt-3">
-                    <h5 class="px-3 mb-4">HealthAnalytics</h5>
+                    <h5 class="px-3 mb-4">
+                        <i class="bi bi-layers"></i>
+                        <span>Navegación</span>
+                    </h5>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="{% url 'dashboard' %}">
-                                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}" onclick="updateBreadcrumb('Dashboard', 'Panel Principal')">
+                                <i class="bi bi-speedometer2"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#procesoEtl">
-                                <i class="bi bi-arrow-repeat me-2"></i> Proceso ETL
+                            <a class="nav-link {% if request.resolver_match.url_name == 'etl' %}active{% endif %}" href="{% url 'etl' %}" onclick="updateBreadcrumb('ETL', 'Proceso de Carga')">
+                                <i class="bi bi-arrow-repeat"></i> Proceso ETL
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#analitica">
-                                <i class="bi bi-bar-chart-line me-2"></i> Analítica
+                            <a class="nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" href="{% url 'analytics' %}" onclick="updateBreadcrumb('Analítica', 'Reportes Clínicos')">
+                                <i class="bi bi-bar-chart-line"></i> Analítica
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#machineLearning">
-                                <i class="bi bi-cpu me-2"></i> Machine Learning
+                            <a class="nav-link {% if request.resolver_match.url_name == 'ml' %}active{% endif %}" href="{% url 'ml' %}" onclick="updateBreadcrumb('ML', 'Predicción de Riesgos')">
+                                <i class="bi bi-cpu"></i> Machine Learning
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#pacientes">
-                                <i class="bi bi-people me-2"></i> Pacientes
+                            <a class="nav-link {% if request.resolver_match.url_name == 'pacientes' %}active{% endif %}" href="{% url 'pacientes' %}" onclick="updateBreadcrumb('Pacientes', 'Gestión de Pacientes')">
+                                <i class="bi bi-people"></i> Pacientes
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#reportes">
-                                <i class="bi bi-file-earmark-spreadsheet me-2"></i> Reportes
+                            <a class="nav-link {% if request.resolver_match.url_name == 'reportes' %}active{% endif %}" href="{% url 'reportes' %}" onclick="updateBreadcrumb('Reportes', 'Generación de Informes')">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Reportes
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#historial">
-                                <i class="bi bi-clock-history me-2"></i> Historial
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/api/docs/">
-                                <i class="bi bi-file-earmark-text me-2"></i> API Docs
+                            <a class="nav-link" href="/api/docs/" target="_blank">
+                                <i class="bi bi-file-earmark-text"></i> API Docs
                             </a>
                         </li>
                     </ul>
-                    <hr>
-                    <div class="px-3">
-                        <form action="{% url 'logout' %}" method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-primary btn-sm w-100">Cerrar Sesión</button>
-                        </form>
+                    <hr class="my-3">
+                    <div class="px-3 text-muted small">
+                        <p class="mb-2"><i class="bi bi-info-circle"></i> <strong>Sesión activa</strong></p>
+                        <p class="mb-0">{{ user.email }}</p>
                     </div>
                 </div>
             </nav>
 
+            <!-- MAIN CONTENT -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
                 {% block content %}{% endblock %}
             </main>
@@ -81,6 +124,14 @@
     <script src="{% static 'js/api-client.js' %}"></script>
     <script src="{% static 'js/auth.js' %}"></script>
     <script src="{% static 'js/charts.js' %}"></script>
+    <script>
+        function updateBreadcrumb(title, subtitle) {
+            const item = document.getElementById('breadcrumb-current');
+            if (item) {
+                item.textContent = subtitle;
+            }
+        }
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
