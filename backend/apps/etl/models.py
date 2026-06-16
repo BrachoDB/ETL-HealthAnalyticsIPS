@@ -53,7 +53,7 @@ class ETLLog(models.Model):
         ('Exitoso', 'Exitoso'),
         ('Fallido', 'Fallido'),
     ]
-    
+
     fecha_ejecucion = models.DateTimeField(auto_now_add=True)
     fecha_inicio = models.DateTimeField(null=True, blank=True)
     fecha_fin = models.DateTimeField(null=True, blank=True)
@@ -69,9 +69,16 @@ class ETLLog(models.Model):
     registros_invalidos = models.IntegerField(default=0)
     registros_actualizados = models.IntegerField(default=0)
     registros_creados = models.IntegerField(default=0)
-    tiempo_ejecucion = models.FloatField() # en segundos
+    tiempo_ejecucion = models.FloatField()  # en segundos
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES)
     detalles = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"ETL {self.fecha_ejecucion} - {self.estado}"
+
+
+# Auditoría transaccional (aditiva)
+# Nota: se mantiene el core de ETLLog sin cambios; este modelo es adicional.
+from .utils_audit import AuditoriaTransaccionalETL
+
+

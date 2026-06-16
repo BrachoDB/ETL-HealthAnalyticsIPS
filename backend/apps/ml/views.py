@@ -20,9 +20,36 @@ class PredictionAPIView(APIView):
 
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
+            # Depuración: imprime el detalle exacto de validación
+            print("[DEBUG] /api/ml/predict/ serializer.errors:", serializer.errors)
             return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Validación clínica robusta antes de invocar el modelo (aditiva)
+        from apps.ml.utils import validar_datos_clinicos
+        try:
+            validar_datos_clinicos(serializer.validated_data)
+        except ValueError as exc:
+            # Auditoría del intento fallido con trazabilidad (requisito)
+            PredictionAudit.objects.create(
+                user=request.user,
+                model_name='random_forest',
+                model_version=MODEL_VERSION,
+                model_path=str(get_model_path()),
+                model_hash=None,
+                input_data=[serializer.validated_data],
+                prediction={
+                    'error': str(exc),
+                    'reason': 'Intento de predicción con datos fuera de rango clínico',
+                },
+            )
+            # Nota: el modelo no se ejecuta.
+            return Response(
+                {'error': str(exc)},
+                status=422,
+            )
+
         return self._predict([serializer.validated_data], single=True, user=request.user, source='api')
+
 
     def _predict(self, records, single=False, user=None, source='api'):
         try:

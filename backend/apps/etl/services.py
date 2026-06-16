@@ -10,6 +10,11 @@ from django.utils import timezone
 
 from apps.authentication.models import User
 from apps.etl.models import ETLLog, Patient
+from apps.etl.models import AuditoriaTransaccionalETL
+
+from apps.etl.utils_linguistic import CorrectorLinguisticoClinico
+from apps.etl.utils_numerical_spanish import ParserNumericoEspanol
+
 
 
 REQUIRED_COLUMNS = [
@@ -134,7 +139,19 @@ class ETLService:
                 invalid_details=invalid_details,
             )
             user = self._get_user(user_id)
+
+            # Auditoría transaccional (aditiva)
+            AuditoriaTransaccionalETL.objects.create(
+                usuario_responsable=user,
+                archivo_fuente=source_label,
+                registros_saneados=registros_procesados,
+                tiempo_ejecucion_segundos=duration,
+                estado_finalizacion='EXITOSO',
+                informe_errores=None,
+            )
+
             log = ETLLog.objects.create(
+
                 usuario=user,
                 fecha_inicio=started_at,
                 fecha_fin=finished_at,
@@ -167,7 +184,19 @@ class ETLService:
             duration = time.time() - start_time
             finished_at = timezone.now()
             user = self._get_user(user_id)
+
+            # Auditoría transaccional (aditiva) - fallido
+            AuditoriaTransaccionalETL.objects.create(
+                usuario_responsable=user,
+                archivo_fuente=source_label,
+                registros_saneados=0,
+                tiempo_ejecucion_segundos=duration,
+                estado_finalizacion='FALLIDO',
+                informe_errores=str(exc),
+            )
+
             log = ETLLog.objects.create(
+
                 usuario=user,
                 fecha_inicio=started_at,
                 fecha_fin=finished_at,
@@ -242,9 +271,20 @@ class ETLService:
     def _transform(self, df):
         df = df.drop_duplicates(subset=['id_paciente'], keep='first').copy()
 
-        df['edad'] = df['edad'].apply(self._clean_edad)
+        # Parser numérico en español (aditivo)
+        parser_edad = ParserNumericoEspanol()
+
+        def _parse_edad(value):
+            if isinstance(value, str):
+                parsed = parser_edad.palabra_a_entero(value)
+                if parsed is not None:
+                    return parsed
+            return self._clean_edad(value)
+
+        df['edad'] = df['edad'].apply(_parse_edad)
         df['edad'] = pd.to_numeric(df['edad'], errors='coerce')
         df['edad'] = df['edad'].fillna(df['edad'].median()).fillna(0)
+
 
         df['presión_sistólica'] = df['presión_sistólica'].apply(self._clean_presion)
         df['presión_sistólica'] = pd.to_numeric(df['presión_sistólica'], errors='coerce')
@@ -271,12 +311,12 @@ class ETLService:
         df['imc'] = df['peso'] / (df['altura'] ** 2)
         df['imc'] = df['imc'].replace([np.inf, -np.inf], np.nan).fillna(df['imc'].median()).fillna(0)
 
-        df['diagnóstico_preliminar'] = df['diagnóstico_preliminar'].replace({
-            'hipertencion': 'Hipertensión',
-            'hipertensíon': 'Hipertensión',
-            'hipertensión': 'Hipertensión',
-        })
-        df['diagnóstico_preliminar'] = df['diagnóstico_preliminar'].apply(self._clean_text).fillna('Sin diagnóstico')
+        # Corrección léxica de diagnósticos (aditivo)
+        corrector = CorrectorLinguisticoClinico()
+        df['diagnóstico_preliminar'] = df['diagnóstico_preliminar'].apply(
+            lambda v: corrector.corregir_diagnostico(self._clean_text(v))
+        )
+
 
         df['sexo'] = df['sexo'].apply(lambda value: value if value in {'Masculino', 'Femenino', 'Otro'} else 'Otro')
         df['riesgo_enfermedad'] = df['riesgo_enfermedad'].apply(self._clean_riesgo).fillna('Bajo')
