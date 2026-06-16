@@ -4,6 +4,8 @@
 {% block title %}Analítica - HealthAnalytics IPS{% endblock %}
 
 {% block content %}
+<div id="analyticsPage" class="d-none"></div>
+
 <div class="page-header mb-4">
     <div class="page-header__content">
         <div class="page-header__icon"><i class="bi bi-bar-chart-line"></i></div>
@@ -16,6 +18,9 @@
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">
         <button type="button" class="btn btn-outline-clinical" data-export="xlsx">
             <i class="bi bi-file-earmark-excel"></i> Excel
+        </button>
+        <button type="button" class="btn btn-outline-clinical" data-export="csv">
+            <i class="bi bi-file-earmark-spreadsheet"></i> CSV
         </button>
         <button type="button" class="btn btn-outline-clinical" data-export="pdf">
             <i class="bi bi-file-earmark-pdf"></i> PDF

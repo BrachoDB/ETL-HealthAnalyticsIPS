@@ -14,6 +14,22 @@
         document.querySelector('.login-card').appendChild(alert);
     }
 
+    function getErrorMessage(error) {
+        if (error?.response?.data?.detail) {
+            return error.response.data.detail;
+        }
+
+        if (error?.response?.data?.non_field_errors) {
+            return error.response.data.non_field_errors.join(' ');
+        }
+
+        if (error?.response?.data?.message) {
+            return error.response.data.message;
+        }
+
+        return 'Credenciales inválidas';
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('loginForm');
         if (!form) {
@@ -22,6 +38,17 @@
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
+
+            if (!api) {
+                showLoginError('No se pudo inicializar el cliente de autenticación.');
+                return;
+            }
+
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton?.innerHTML;
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
             showLoginError('Iniciando sesión...');
 
             const formData = new FormData(form);
@@ -36,7 +63,14 @@
                 await api.post('/api/auth/session-login/', formData);
                 window.location.href = '/';
             } catch (error) {
-                showLoginError(error.response?.data?.detail || 'Credenciales inválidas');
+                showLoginError(getErrorMessage(error));
+            } finally {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+                if (originalText) {
+                    submitButton.innerHTML = originalText;
+                }
             }
         });
     });

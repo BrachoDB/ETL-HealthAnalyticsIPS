@@ -1,5 +1,9 @@
 (function () {
     const api = window.HealthAnalyticsAPI;
+    const isDashboard = Boolean(document.getElementById('dashboardPage'));
+    const isAnalytics = Boolean(document.getElementById('analyticsPage'));
+    const isPacientes = Boolean(document.getElementById('pacientesPage'));
+    const shouldLoadAnalytics = isDashboard || isAnalytics;
     let pacientesRecientes = [];
     let activeRiskFilter = 'todos';
 
@@ -37,8 +41,39 @@
         return date.toLocaleString();
     }
 
+    function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    function formatLogDetails(details) {
+        const text = String(details || '').replace(/\s+/g, ' ').trim();
+        if (!text) {
+            return '<span class="text-muted">Sin detalles</span>';
+        }
+
+        const truncated = text.length > 160 ? `${text.slice(0, 160)}...` : text;
+        return `<span title="${escapeHTML(text)}">${escapeHTML(truncated)}</span>`;
+    }
+
     function showError(message) {
         alert(message);
+    }
+
+    function formatApiError(error, fallback) {
+        const status = error.response?.status ? `${error.response.status} ` : '';
+        const detail = error.response?.data?.detail || error.response?.data?.error || error.message;
+        return `${fallback} (${status}${detail || 'sin detalles del servidor'})`;
+    }
+
+    function safeLoad(label, loader) {
+        try {
+            loader();
+        } catch (error) {
+            console.error(`Error cargando ${label}`, error);
+        }
     }
 
     function redirectLogin() {
@@ -51,15 +86,17 @@
             const response = await api.get('/api/analytics/kpis/');
             const data = response.data;
 
-            document.getElementById('kpiTotal').textContent = data.total_pacientes;
-            document.getElementById('kpiCriticos').textContent = data.pacientes_criticos;
-            document.getElementById('kpiHipertensos').textContent = data.hipertensos;
-            document.getElementById('kpiImc').textContent = formatNumber(data.imc_promedio);
+            setText('kpiTotal', data.total_pacientes);
+            setText('kpiCriticos', data.pacientes_criticos);
+            setText('kpiHipertensos', data.hipertensos);
+            setText('kpiImc', formatNumber(data.imc_promedio));
 
             loadRiskChart(data.riesgo_distribucion);
             loadAgeRiskChart(data.edad_riesgo);
             await loadDashboardExtras();
-            await loadLogs();
+            if (isDashboard) {
+                await loadLogs();
+            }
         } catch (error) {
             console.error(error);
             if (api.isAuthError(error)) {
@@ -71,24 +108,30 @@
     }
 
     async function loadDashboardExtras() {
+        let data;
         try {
             const response = await api.get('/api/analytics/dashboard-extras/');
-            const data = response.data;
-            loadTrendChart(data.tendencias);
-            loadHeatmap(data.heatmap);
-            loadDiagnosticoChart(data.diagnosticos);
-            loadMensualChart(data.mensual);
-            loadEstadisticaDescriptiva(data.estadistica);
-            loadPacientes(data.pacientes);
-            loadCriticalAlerts(data.criticos);
-            loadSegmentation(data.segmentacion);
-            loadMLMetrics(data.ml_metricas);
+            data = response.data;
         } catch (error) {
             console.error(error);
-            if (!api.isAuthError(error)) {
-                showError('No fue posible cargar los datos analíticos adicionales.');
+            if (api.isAuthError(error)) {
+                redirectLogin();
+                return;
             }
+            showError(formatApiError(error, 'No fue posible cargar los datos analíticos adicionales'));
+            return;
         }
+
+        safeLoad('tendencias', () => loadTrendChart(data.tendencias));
+        safeLoad('heatmap', () => loadHeatmap(data.heatmap));
+        safeLoad('diagnósticos', () => loadDiagnosticoChart(data.diagnosticos));
+        safeLoad('mensual', () => loadMensualChart(data.mensual));
+        safeLoad('estadística descriptiva', () => loadEstadisticaDescriptiva(data.estadistica));
+        safeLoad('pacientes', () => loadPacientes(data.pacientes));
+        safeLoad('distribución de edades', () => loadEdadesChart(data.pacientes));
+        safeLoad('alertas críticas', () => loadCriticalAlerts(data.criticos));
+        safeLoad('segmentación', () => loadSegmentation(data.segmentacion));
+        safeLoad('métricas ML', () => loadMLMetrics(data.ml_metricas));
     }
 
     function loadEstadisticaDescriptiva(estadistica) {
@@ -133,7 +176,8 @@
     }
 
     function renderPacientes(pacientes) {
-        const query = document.getElementById('filtroPacientes').value.toLowerCase();
+        const filterElement = document.getElementById('filtroPacientes');
+        const query = filterElement ? filterElement.value.toLowerCase() : '';
         const filtered = (pacientes || []).filter(paciente => {
             const text = `${paciente.nombres} ${paciente.apellidos} ${paciente.diagnostico_preliminar} ${paciente.riesgo_enfermedad}`.toLowerCase();
             const matchesRisk = activeRiskFilter === 'todos' || paciente.riesgo_enfermedad === activeRiskFilter;
@@ -214,12 +258,13 @@
             return;
         }
 
-        if (!criticos.length) {
+        const alerts = criticos || [];
+        if (!alerts.length) {
             list.innerHTML = '<li class="list-group-item text-success">No hay alertas críticas activas</li>';
             return;
         }
 
-        list.innerHTML = criticos.map(paciente => `
+        list.innerHTML = alerts.map(paciente => `
             <li class="list-group-item">
                 <strong>${escapeHTML(paciente.nombres)} ${escapeHTML(paciente.apellidos)}</strong> - ${escapeHTML(paciente.riesgo_enfermedad)}<br>
                 <span class="text-danger">PA ${escapeHTML(paciente.presion_sistolica)}</span> |
@@ -302,17 +347,16 @@
             }
 
             tbody.innerHTML = '';
-            logs.forEach(log => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${formatDate(log.fecha_ejecucion)}</td>
-                        <td>${escapeHTML(log.registros_procesados)}</td>
-                        <td>${formatNumber(log.tiempo_ejecucion)}</td>
-                        <td><span class="badge ${log.estado === 'Exitoso' ? 'bg-success' : 'bg-danger'}">${escapeHTML(log.estado)}</span></td>
-                        <td class="logs-details">${escapeHTML(log.detalles || '')}</td>
-                    </tr>
-                `;
-            });
+            const rows = logs.map(log => `
+                <tr>
+                    <td>${formatDate(log.fecha_ejecucion)}</td>
+                    <td>${escapeHTML(log.registros_procesados)}</td>
+                    <td>${formatNumber(log.tiempo_ejecucion)}</td>
+                    <td><span class="badge ${log.estado === 'Exitoso' ? 'bg-success' : 'bg-danger'}">${escapeHTML(log.estado)}</span></td>
+                    <td class="logs-details">${formatLogDetails(log.detalles)}</td>
+                </tr>
+            `).join('');
+            tbody.innerHTML = rows;
         } catch (error) {
             console.error(error);
             if (!api.isAuthError(error)) {
@@ -399,6 +443,13 @@
         try {
             const response = await api.post('/api/ml/predict/', data);
             const resultDiv = document.getElementById('predictResult');
+            const riskElement = document.getElementById('resRiesgo');
+            const probabilitiesElement = document.getElementById('resProbabilidades');
+            if (!resultDiv || !riskElement || !probabilitiesElement) {
+                showError('No se encontró el contenedor de resultados de predicción.');
+                return;
+            }
+
             const probabilities = Object.entries(response.data.probabilidades || {})
                 .map(([risk, probability]) => `${risk}: ${(probability * 100).toFixed(2)}%`)
                 .join(', ');
@@ -406,10 +457,11 @@
                 .map(item => `${item.feature}: ${(item.importance * 100).toFixed(2)}%`)
                 .join(', ');
             resultDiv.classList.remove('d-none');
-            document.getElementById('resRiesgo').textContent = response.data.riesgo_predicho;
-            document.getElementById('resProbabilidades').textContent = probabilities;
-            document.getElementById('predictResult').insertAdjacentHTML('beforeend', `<div class="small mt-2"><strong>Explicación:</strong> ${escapeHTML(explanation)}</div>`);
-            document.getElementById('predictResult').insertAdjacentHTML('beforeend', `<div class="small text-muted mt-1">${escapeHTML(response.data.advertencia_clinica || '')}</div>`);
+            resultDiv.querySelectorAll('.prediction-explanation, .prediction-warning').forEach(element => element.remove());
+            riskElement.textContent = response.data.riesgo_predicho;
+            probabilitiesElement.textContent = probabilities;
+            resultDiv.insertAdjacentHTML('beforeend', `<div class="prediction-explanation small mt-2"><strong>Explicación:</strong> ${escapeHTML(explanation)}</div>`);
+            resultDiv.insertAdjacentHTML('beforeend', `<div class="prediction-warning small text-muted mt-1">${escapeHTML(response.data.advertencia_clinica || '')}</div>`);
         } catch (error) {
             showError(error.response?.data?.error || 'Error en predicción');
         }
@@ -457,15 +509,29 @@
         const clearFilterButton = document.getElementById('btnLimpiarFiltro');
         if (clearFilterButton) {
             clearFilterButton.addEventListener('click', () => {
-                document.getElementById('filtroPacientes').value = '';
+                const filterElement = document.getElementById('filtroPacientes');
+                if (filterElement) {
+                    filterElement.value = '';
+                }
                 renderPacientes(pacientesRecientes);
             });
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        if (!api) {
+            return;
+        }
+
         api.setAuthHeader();
         bindEvents();
-        loadData();
+
+        if (shouldLoadAnalytics) {
+            loadData();
+        }
+
+        if (isPacientes) {
+            loadDashboardExtras();
+        }
     });
 })();
