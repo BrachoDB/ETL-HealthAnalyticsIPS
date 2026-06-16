@@ -336,6 +336,15 @@ class DashboardExtrasView(APIView):
         metrica = MLModelMetrics.objects.order_by('-trained_at').first()
         if not metrica:
             return None
+
+        classes = []
+        try:
+            from apps.ml.services import load_model_bundle
+            model, label_encoder, _, _ = load_model_bundle()
+            classes = list(label_encoder.classes_)
+        except Exception:
+            pass
+
         return {
             'model_name': metrica.model_name,
             'model_version': getattr(metrica, 'model_version', 'random_forest_v1'),
@@ -344,6 +353,8 @@ class DashboardExtrasView(APIView):
             'precision': round(metrica.precision, 4),
             'recall': round(metrica.recall, 4),
             'f1_score': round(metrica.f1_score, 4),
+            'confusion_matrix': metrica.confusion_matrix,
+            'classes': classes,
             'trained_at': metrica.trained_at.strftime('%Y-%m-%d %H:%M:%S'),
         }
 
