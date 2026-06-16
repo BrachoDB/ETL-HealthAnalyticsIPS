@@ -8,6 +8,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from django.http import HttpResponse
 from django.utils import timezone
+
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -58,65 +64,144 @@ class ReportsExportView(APIView):
             user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
         )
 
+        # --- ReportLab (paginación automática) ---
         output = BytesIO()
-        fig = plt.figure(figsize=(11, 8.5))
-        fig.text(0.08, 0.94, 'HealthAnalytics IPS - Reporte Ejecutivo', fontsize=16, weight='bold')
-        fig.text(0.08, 0.90, f'Fecha: {date.today().strftime("%d/%m/%Y")}', fontsize=11)
+        doc = SimpleDocTemplate(
+            output,
+            pagesize=landscape(letter),
+            rightMargin=18,
+            leftMargin=18,
+            topMargin=18,
+            bottomMargin=18,
+        )
 
-        resumen = [f'Periodo solicitado: {periodo}', f'Total pacientes en periodo: {len(df)}']
-        fig.text(0.08, 0.86, ' | '.join(resumen), fontsize=10)
+        styles = getSampleStyleSheet()
+        title_style = styles['Title']
+        title_style.fontSize = 16
 
-        cursor_y = 0.80
+        elements = []
+        elements.append(Paragraph('HealthAnalytics IPS - Reporte Ejecutivo', title_style))
+        elements.append(Paragraph(f'Fecha: {date.today().strftime("%d/%m/%Y")}', styles['Normal']))
+        elements.append(Spacer(1, 8))
+
+        elements.append(Paragraph(f'Periodo solicitado: {periodo}', styles['Normal']))
+        elements.append(Paragraph(f'Total pacientes en periodo: {len(df)}', styles['Normal']))
+        elements.append(Spacer(1, 12))
+
         if include_kpis:
-            # KPIs mínimas disponibles desde dataset: riesgo_ distribución e imc promedio
             riesgo_counts = df.get('riesgo_enfermedad', pd.Series(dtype=str)).value_counts(dropna=True).to_dict()
             imc_prom = float(pd.to_numeric(df.get('imc', pd.Series([0])), errors='coerce').mean())
-            fig.text(0.08, cursor_y, 'KPIs Principales:', fontsize=12, weight='bold')
-            cursor_y -= 0.03
-            fig.text(0.08, cursor_y, f'IMC promedio: {imc_prom:.2f}', fontsize=10)
-            cursor_y -= 0.02
-            fig.text(0.08, cursor_y, f'Distribución riesgo: {riesgo_counts}', fontsize=8)
-            cursor_y -= 0.05
+            elements.append(Paragraph('KPIs Principales', styles['Heading2']))
+            elements.append(Paragraph(f'IMC promedio: {imc_prom:.2f}', styles['Normal']))
+            elements.append(Paragraph(f'Distribución riesgo: {riesgo_counts}', styles['Normal']))
+            elements.append(Spacer(1, 12))
 
-        if include_charts:
-            # Gráfico simple: distribución de riesgo
-            try:
-                riesgo_col = 'riesgo_enfermedad' if 'riesgo_enfermedad' in df.columns else None
-                if riesgo_col:
-                    vc = df[riesgo_col].value_counts().sort_index()
-                    ax = fig.add_axes([0.55, 0.42, 0.38, 0.30])
-                    ax.bar(vc.index.astype(str), vc.values)
-                    ax.set_title('Riesgo - Conteo')
-                    ax.set_xticklabels(vc.index.astype(str), rotation=45, ha='right', fontsize=8)
-                    ax.tick_params(axis='y', labelsize=8)
-            except Exception:
-                # Mantener robustez del PDF incluso si el dataset viene con columnas faltantes
-                pass
+        # --- Gráficas (Matplotlib) -> PNG en memoria -> ReportLab Image ---
+        # IMPORTANTE: la imagen se agrega SOLO UNA VEZ al principio del story.
+        img = None
+        if include_charts or include_kpis:
+            fig = plt.figure(figsize=(12, 6))
+
+            # Fondo/estilo liviano
+            ax = fig.add_subplot(111)
+            ax.axis('off')
+
+            cursor_y = 0.95
+            # Título secundario
+            if include_kpis:
+                riesgo_counts = df.get('riesgo_enfermedad', pd.Series(dtype=str)).value_counts(dropna=True).to_dict()
+                imc_prom = float(pd.to_numeric(df.get('imc', pd.Series([0])), errors='coerce').mean())
+
+                ax.text(0.02, cursor_y, 'KPIs Principales', fontsize=14, fontweight='bold', transform=ax.transAxes)
+                cursor_y -= 0.06
+                ax.text(0.02, cursor_y, f'IMC promedio: {imc_prom:.2f}', fontsize=12, transform=ax.transAxes)
+                cursor_y -= 0.04
+                ax.text(0.02, cursor_y, f'Distribución riesgo: {riesgo_counts}', fontsize=10, transform=ax.transAxes)
+                cursor_y -= 0.06
+
+            if include_charts:
+                # Gráfico: distribución de riesgo
+                try:
+                    riesgo_col = 'riesgo_enfermedad' if 'riesgo_enfermedad' in df.columns else None
+                    if riesgo_col:
+                        series = df[riesgo_col]
+                        vc = series.value_counts().sort_index()
+
+                        ax_bar = fig.add_axes([0.55, 0.25, 0.40, 0.55])
+                        ax_bar.bar(vc.index.astype(str), vc.values)
+                        ax_bar.set_title('Riesgo - Conteo', fontsize=10)
+                        ax_bar.set_xticklabels(vc.index.astype(str), rotation=45, ha='right', fontsize=8)
+                        ax_bar.tick_params(axis='y', labelsize=8)
+                except Exception:
+                    pass
+
+            fig.tight_layout()
+            png_buffer = BytesIO()
+            fig.savefig(png_buffer, format='png', dpi=200, bbox_inches='tight')
+            plt.close(fig)
+            png_buffer.seek(0)
+
+            # Convertir a Image de ReportLab
+            from reportlab.platypus import Image
+            img = Image(png_buffer)
+
+            # Restricción de tamaño máxima para evitar LayoutError
+            img.drawWidth = 600
+            img.drawHeight = 300
+
+            # Agregar AL PRINCIPIO (antes de cualquier tabla)
+            elements.append(img)
+            elements.append(Spacer(1, 12))
+
+
 
         if include_table:
-            # Tabla compacta (primeros 30 registros)
-            try:
-                tabla_df = df.head(30)
-                ax_table = fig.add_axes([0.08, 0.05, 0.86, 0.33])
-                ax_table.axis('off')
-                table = ax_table.table(
-                    cellText=tabla_df.values,
-                    colLabels=tabla_df.columns,
-                    loc='center',
-                    cellLoc='left',
-                )
-                table.auto_set_font_size(False)
-                table.set_fontsize(7)
-            except Exception:
-                pass
+            columnas_esenciales = [
+                'id_paciente',
+                'nombres',
+                'apellidos',
+                'edad',
+                'riesgo_enfermedad',
+                'diagnostico_preliminar',
+                'imc',
+                'fecha_consulta',
+            ]
 
-        fig.savefig(output, format='pdf')
-        plt.close(fig)
-        output.seek(0)
+            tabla_df = df.copy()
+            columnas_existentes = [c for c in columnas_esenciales if c in tabla_df.columns]
+            tabla_df = tabla_df[columnas_existentes]
 
-        response = HttpResponse(output.getvalue(), content_type='application/pdf')
+            # Convertir a listas de listas para Table
+            # Primera fila: encabezado
+            headers = list(tabla_df.columns)
+            data_rows = tabla_df.fillna('').values.tolist()
+            table_data = [headers] + data_rows
+
+            table = Table(table_data, repeatRows=1)
+            table_style = TableStyle(
+                [
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('ROWHEIGHT', (0, 1), (-1, -1), 20),
+                    ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ]
+            )
+            table.setStyle(table_style)
+
+            elements.append(table)
+
+        doc.build(elements)
+
+        pdf_bytes = output.getvalue()
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="reporte_{date.today().strftime("%Y%m%d")}.pdf"'
         return response
+
 
     def _handle_tabular(self, request, export_format: str):
         export_type = (request.GET.get('export_type') or 'patients').lower()
