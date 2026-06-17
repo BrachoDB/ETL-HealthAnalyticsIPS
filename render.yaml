@@ -1,0 +1,56 @@
+# Render.com Blueprint for HealthAnalytics IPS
+# Django backend + external MySQL database (Aiven). MySQL is kept everywhere;
+# no PostgreSQL is used.
+services:
+  - type: web
+    name: healthanalytics-ips
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    # build.sh installs deps, runs collectstatic and migrate (inside backend/).
+    buildCommand: "./build.sh"
+    # Gunicorn is the production WSGI server. $PORT is provided by Render.
+    startCommand: "cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120"
+    healthCheckPath: /api/docs/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+
+      # Django core
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+
+      # External MySQL database (Aiven) with SSL required.
+      # Secret: set the full mysql://... connection string in the Render
+      # dashboard (Environment tab). It is NOT stored in the repo.
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSL_REQUIRED
+        value: "True"
+      - key: DB_SSL_MODE
+        value: "REQUIRED"
+
+      # HTTPS / security hardening (Render terminates TLS at the proxy).
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: SESSION_COOKIE_SECURE
+        value: "True"
+      - key: CSRF_COOKIE_SECURE
+        value: "True"
+      - key: SECURE_HSTS_SECONDS
+        value: "31536000"
+      - key: SECURE_HSTS_INCLUDE_SUBDOMAINS
+        value: "True"
+      - key: SECURE_HSTS_PRELOAD
+        value: "True"
+
+      # CORS / CSRF (adjust to your real front-end origin if separate).
+      - key: CORS_ALLOW_ALL_ORIGINS
+        value: "False"
+      - key: OPEN_REGISTRATION
+        value: "False"

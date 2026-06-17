@@ -19,7 +19,12 @@ venv.bak/
 *.oxps
 Plan.json
 backend/media/etl_uploads/*
+!backend/media/etl_uploads/.gitkeep
 backend/media/models/*
+!backend/media/models/.gitkeep
+
+# Collected static files (regenerated on each deploy)
+backend/staticfiles/
 
 # Scikit-learn models (optional, keep if you want models in repo, but usually excluded)
 # backend/apps/ml/saved_models/*.pkl

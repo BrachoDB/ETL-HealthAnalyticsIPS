@@ -1,9 +1,10 @@
 import os
 from pathlib import Path
 import environ
+import dj_database_url
 from datetime import timedelta
 
-# Initialize environment variables
+# Initialize environment variables (django-environ for .env parsing in local)
 env = environ.Env(
     DEBUG=(bool, False)
 )
@@ -11,13 +12,36 @@ env = environ.Env(
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Read .env file
+# Read .env file in local development. On Render the variables come from the
+# service environment, so this is a no-op when the file does not exist.
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
+
+def env_bool(name, default=False):
+    """Safely read a boolean from the environment."""
+    return os.environ.get(name, str(default)).strip().lower() in ('true', '1', 'yes', 'on')
+
+
+def env_list(name, default=None):
+    """Safely read a comma-separated list from the environment."""
+    raw = os.environ.get(name)
+    if not raw:
+        return list(default or [])
+    return [item.strip() for item in raw.split(',') if item.strip()]
+
+
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = env('SECRET_KEY')
-DEBUG = env('DEBUG')
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-change-me-in-production-please-use-a-real-secret-key',
+)
+DEBUG = env_bool('DEBUG', default=False)
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+
+# Render injects the public hostname of the service at runtime.
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Application definition
 INSTALLED_APPS = [
@@ -27,7 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
@@ -45,6 +69,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise serves static files in production (must come right after security).
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -74,15 +100,36 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database
+# Database (MySQL - works locally with .env and in production with DATABASE_URL).
+# We keep MySQL in every environment; only the connection target changes.
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'mysql://root:@127.0.0.1:3307/healthanalyticsips_db',
+)
+
 DATABASES = {
-    'default': {
-        **env.db(),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'",
-        },
-    },
+    'default': dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    ),
 }
+
+# Preserve the strict SQL mode used by the ETL pipeline.
+DATABASES['default'].setdefault('OPTIONS', {})
+DATABASES['default']['OPTIONS']['init_command'] = (
+    "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,"
+    "ERROR_FOR_DIVISION_BY_ZERO'"
+)
+
+# SSL support for managed providers such as Aiven (SSL: REQUIRED).
+# Enable it in production via DB_SSL_REQUIRED=True. Optionally point DB_SSL_CA
+# to the Aiven ca.pem to also verify the server certificate.
+if env_bool('DB_SSL_REQUIRED', default=False):
+    DATABASES['default']['OPTIONS']['ssl_mode'] = os.environ.get('DB_SSL_MODE', 'REQUIRED')
+    DB_SSL_CA = os.environ.get('DB_SSL_CA')
+    if DB_SSL_CA:
+        DATABASES['default']['OPTIONS']['ssl'] = {'ca': DB_SSL_CA}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -103,8 +150,19 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Media files (joblib ML models, ETL uploads, etc.)
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Storage backends: WhiteNoise compresses and fingerprints static assets.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -142,21 +200,25 @@ SPECTACULAR_SETTINGS = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
-CORS_ALLOWED_ORIGINS = env.list(
+CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', default=False)
+CORS_ALLOWED_ORIGINS = env_list(
     'CORS_ALLOWED_ORIGINS',
     default=['http://localhost:8000', 'http://127.0.0.1:8000'],
 )
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS', default=[])
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 
 # Security Configuration
-OPEN_REGISTRATION = env.bool('OPEN_REGISTRATION', default=False)
-SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
-SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=not DEBUG)
-CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=not DEBUG)
-SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
-SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
+OPEN_REGISTRATION = env_bool('OPEN_REGISTRATION', default=False)
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', default=False)
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', default=not DEBUG)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', default=not DEBUG)
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
+SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', default=False)
+# Honor the X-Forwarded-Proto header set by Render's proxy so HTTPS is detected.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.User'
