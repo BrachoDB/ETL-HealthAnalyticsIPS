@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Proceso ETL - HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div class="page-header__content">
+        <div class="page-header__icon"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="page-header__text">
+            <span class="eyebrow">Extracción, Transformación y Carga</span>
+            <h1 class="page-header__title">Proceso ETL</h1>
+            <p class="page-header__subtitle">Cargue datos clínicos en CSV o Excel para procesamiento automático.</p>
+        </div>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+        <button type="button" class="btn btn-primary btn-elevated" id="btnRunEtl">
+            <i class="bi bi-play-fill"></i> Ejecutar Carga
+        </button>
+        <button type="button" class="btn btn-outline-clinical" id="btnRefreshStatus">
+            <i class="bi bi-arrow-clockwise"></i> Actualizar
+        </button>
+    </div>
+</div>
+
+<!-- CARGA DE ARCHIVOS -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-cloud-upload"></i> Carga Manual</h5>
+        <p class="text-muted small">Soporta CSV, XLSX, XLS. Máximo 50MB.</p>
+        <form id="formUploadCsv" class="row g-3 align-items-end" enctype="multipart/form-data">
+            <div class="col-md-8">
+                <label for="archivoCsv" class="form-label">Seleccionar archivo</label>
+                <input type="file" class="form-control" id="archivoCsv" name="archivo" accept=".csv,.xlsx,.xls" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-secondary w-100" id="btnUploadCsv">
+                    <i class="bi bi-upload"></i> Procesar
+                </button>
+            </div>
+        </form>
+        <div id="uploadResult" class="mt-3 d-none"></div>
+    </div>
+</div>
+
+<!-- ESTADÍSTICAS DE CARGA -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card stat-card--blue">
+            <div class="stat-card__icon"><i class="bi bi-file-earmark-arrow-up"></i></div>
+            <div>
+                <span>Archivos Procesados</span>
+                <strong id="kpiArchivos">0</strong>
+                <small>En el último mes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card stat-card--cyan">
+            <div class="stat-card__icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div>
+                <span>Registros Válidos</span>
+                <strong id="kpiValidos">0</strong>
+                <small>Cargados correctamente</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card stat-card--red">
+            <div class="stat-card__icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div>
+                <span>Errores</span>
+                <strong id="kpiErrores">0</strong>
+                <small>Registros rechazados</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HISTÓRICO DE EJECUCIONES -->
+<div class="card">
+    <div class="card-header-custom">
+        <h5>Histórico de Ejecuciones</h5>
+        <button class="btn btn-sm btn-outline-secondary" id="btnRefreshLogs"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Archivo</th>
+                        <th>Procesados</th>
+                        <th>Tiempo (s)</th>
+                        <th>Estado</th>
+                        <th>Detalles</th>
+                    </tr>
+                </thead>
+                <tbody id="tableLogs">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Cargando histórico...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

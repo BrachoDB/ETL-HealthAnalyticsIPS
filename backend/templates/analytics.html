@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Analítica - HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div id="analyticsPage" class="d-none"></div>
+
+<div class="page-header mb-4">
+    <div class="page-header__content">
+        <div class="page-header__icon"><i class="bi bi-bar-chart-line"></i></div>
+        <div class="page-header__text">
+            <span class="eyebrow">Análisis de Datos Clínicos</span>
+            <h1 class="page-header__title">Analítica</h1>
+            <p class="page-header__subtitle">Visualización de métricas, tendencias y distribuciones clínicas.</p>
+        </div>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+        <button type="button" class="btn btn-outline-clinical" data-export="xlsx">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </button>
+        <button type="button" class="btn btn-outline-clinical" data-export="csv">
+            <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+        </button>
+        <button type="button" class="btn btn-outline-clinical" id="btnAnalyticsPdf">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+        </button>
+    </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card stat-card--blue">
+            <div class="stat-card__icon"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <span>Total Pacientes</span>
+                <strong id="kpiTotal">0</strong>
+                <small>Registro activo</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card--red">
+            <div class="stat-card__icon"><i class="bi bi-activity"></i></div>
+            <div>
+                <span>Críticos</span>
+                <strong id="kpiCriticos">0</strong>
+                <small>Atención prioritaria</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card--amber">
+            <div class="stat-card__icon"><i class="bi bi-heart-pulse-fill"></i></div>
+            <div>
+                <span>Hipertensos</span>
+                <strong id="kpiHipertensos">0</strong>
+                <small>Seguimiento CV</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card--cyan">
+            <div class="stat-card__icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div>
+                <span>IMC Promedio</span>
+                <strong id="kpiImc">0</strong>
+                <small>Indicador metabólico</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GRÁFICOS CLÍNICOS -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Distribución de Riesgo Clínico</h5>
+            <canvas id="chartRiesgo"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Edad vs Riesgo Clínico</h5>
+            <canvas id="chartEdadRiesgo"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Diagnósticos Preliminares</h5>
+            <canvas id="chartDiagnosticos"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Tendencia Mensual de Riesgo</h5>
+            <canvas id="chartMensual"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Tendencias Clínicas</h5>
+            <canvas id="chartTendencias"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Heatmap Edad vs Riesgo</h5>
+            <div id="heatmapEdadRiesgo" class="table-responsive small"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TABLA DE SEGMENTACIÓN -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5>Segmentación de Pacientes</h5>
+        <div id="segmentacionPacientes" class="table-responsive"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const api = window.HealthAnalyticsAPI;
+        const button = document.getElementById('btnAnalyticsPdf');
+        if (!api || !button || !api.get) {
+            return;
+        }
+
+        button.addEventListener('click', async function (event) {
+            event.stopImmediatePropagation();
+
+            const originalHtml = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
+
+            try {
+                api.setAuthHeader();
+                const response = await api.get('/api/analytics/export/pdf/', {
+                    responseType: 'blob',
+                });
+
+                const blob = new Blob([response.data], {
+                    type: response.headers['content-type'] || 'application/pdf',
+                });
+                const contentDisposition = response.headers['content-disposition'] || '';
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+                const filename = filenameMatch ? filenameMatch[1] : `analitica_${new Date().toISOString().slice(0, 10).replaceAll('-', '')}.pdf`;
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                alert(error.response?.data?.error || 'Error al generar el PDF');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            }
+        }, true);
+    });
+})();
+</script>
+{% endblock %}

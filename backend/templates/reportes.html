@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reportes - HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div class="page-header__content">
+        <div class="page-header__icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+        <div class="page-header__text">
+            <span class="eyebrow">Generación de Informes</span>
+            <h1 class="page-header__title">Reportes</h1>
+            <p class="page-header__subtitle">Exporte datos en múltiples formatos para análisis y documentación.</p>
+        </div>
+    </div>
+</div>
+
+<!-- GENERADOR DE REPORTES -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5><i class="bi bi-file-earmark-pdf"></i> Generar PDF</h5>
+            <p class="text-muted small">Reporte ejecutivo con gráficos y métricas.</p>
+            <form id="formPdf" class="row g-2">
+                <div class="col-12">
+                    <label class="form-label small">Período</label>
+                    <select class="form-select form-select-sm" name="periodo">
+                        <option value="semana">Última Semana</option>
+                        <option value="mes" selected>Último Mes</option>
+                        <option value="trimestre">Último Trimestre</option>
+                        <option value="anio">Último Año</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small">Secciones a incluir</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="include_kpis" id="includePdfKpis" checked>
+                        <label class="form-check-label" for="includePdfKpis">
+                            KPIs Principales
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="include_charts" id="includePdfCharts" checked>
+                        <label class="form-check-label" for="includePdfCharts">
+                            Gráficos de Análisis
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="include_table" id="includePdfTable" checked>
+                        <label class="form-check-label" for="includePdfTable">
+                            Tabla de Pacientes
+                        </label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-download"></i> Descargar PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5><i class="bi bi-file-earmark-excel"></i> Exportar Datos</h5>
+            <p class="text-muted small">Descargue los datos en formato Excel o CSV.</p>
+            <form id="formExport" class="row g-2">
+                <div class="col-12">
+                    <label class="form-label small">Tipo de exportación</label>
+                    <select class="form-select form-select-sm" name="export_type">
+                        <option value="patients">Datos de Pacientes</option>
+                        <option value="analytics">Análisis Clínicos</option>
+                        <option value="etl">Historial ETL</option>
+                        <option value="completo">Todos los Datos</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small">Formato</label>
+                    <div>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="format" value="xlsx" id="formatXlsx" checked>
+                            <label class="btn btn-outline-secondary" for="formatXlsx">Excel</label>
+
+                            <input type="radio" class="btn-check" name="format" value="csv" id="formatCsv">
+                            <label class="btn btn-outline-secondary" for="formatCsv">CSV</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-download"></i> Descargar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- REPORTES PROGRAMADOS -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-calendar-event"></i> Reportes Programados</h5>
+        <p class="text-muted small">Configure reportes automáticos para recibir por correo.</p>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card border bg-light">
+                    <div class="card-body small">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <strong>Reporte Semanal</strong>
+                            <span class="badge bg-success">Activo</span>
+                        </div>
+                        <p class="mb-2 text-muted">Cada lunes a las 08:00</p>
+                        <button class="btn btn-sm btn-outline-secondary">Editar</button>
+                        <button class="btn btn-sm btn-outline-danger">Desactivar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border bg-light">
+                    <div class="card-body small">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <strong>Reporte Mensual</strong>
+                            <span class="badge bg-secondary">Inactivo</span>
+                        </div>
+                        <p class="mb-2 text-muted">Primer día del mes a las 09:00</p>
+                        <button class="btn btn-sm btn-outline-secondary">Editar</button>
+                        <button class="btn btn-sm btn-outline-success">Activar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HISTÓRICO DE DESCARGAS -->
+<div class="card">
+    <div class="card-header-custom">
+        <h5>Histórico de Descargas</h5>
+        <button class="btn btn-sm btn-outline-secondary" id="btnRefreshDownloads">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Formato</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tableDownloads">
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No hay descargas disponibles
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script src="{% static 'js/reportes.js' %}"></script>
+{% endblock %}
+

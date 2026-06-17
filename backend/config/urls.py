@@ -15,6 +15,8 @@ urlpatterns = [
     path('api/pacientes/', include('apps.etl.urls')),
     path('api/analytics/', include('apps.analytics.urls')),
     path('api/ml/', include('apps.ml.urls')),
+    path('api/reportes/', include('apps.reports.urls')),
+
     
     # Dashboard
     path('', include('apps.dashboard.urls')),

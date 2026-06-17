@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pacientes - HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div id="pacientesPage" class="d-none"></div>
+
+<div class="page-header mb-4">
+    <div class="page-header__content">
+        <div class="page-header__icon"><i class="bi bi-people"></i></div>
+        <div class="page-header__text">
+            <span class="eyebrow">Gestión de Registros</span>
+            <h1 class="page-header__title">Pacientes</h1>
+            <p class="page-header__subtitle">Búsqueda, filtrado y análisis de historiales clínicos.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ESTADÍSTICA DESCRIPTIVA -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Estadística Descriptiva</h5>
+            <div id="estadisticaDescriptiva" class="table-responsive"></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h5>Distribución de Edades</h5>
+            <canvas id="chartEdades"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- LISTADO DE PACIENTES -->
+<div class="card">
+    <div class="card-body">
+        <h5 class="mb-3">Listado de Pacientes</h5>
+
+        <!-- FILTROS -->
+        <div class="row g-2 mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="filtroPacientes" type="search" class="form-control" placeholder="Buscar paciente, ID, diagnóstico...">
+                </div>
+            </div>
+            <div class="col-md-6 d-flex gap-2">
+                <button class="btn btn-outline-secondary flex-grow-1" id="btnLimpiarFiltro">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- FILTRO POR RIESGO (CHIPS) -->
+        <div class="filter-chips mb-3">
+            <button class="filter-chip active" data-risk-filter="todos">Todos</button>
+            <button class="filter-chip" data-risk-filter="Crítico">
+                <i class="bi bi-exclamation-circle"></i> Críticos
+            </button>
+            <button class="filter-chip" data-risk-filter="Alto">
+                <i class="bi bi-exclamation-triangle"></i> Altos
+            </button>
+            <button class="filter-chip" data-risk-filter="Medio">
+                <i class="bi bi-info-circle"></i> Medios
+            </button>
+            <button class="filter-chip" data-risk-filter="Bajo">
+                <i class="bi bi-check-circle"></i> Bajos
+            </button>
+        </div>
+
+        <!-- TABLA -->
+        <div id="tablaPacientes" class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>ID Paciente</th>
+                        <th>Nombre</th>
+                        <th>Edad</th>
+                        <th>Diagnóstico</th>
+                        <th>Riesgo</th>
+                        <th>Última Consulta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-hourglass-split"></i> Cargando pacientes...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}
