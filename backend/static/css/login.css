@@ -6,7 +6,7 @@
     --health-bg: #f8fbff;
     --health-surface: #ffffff;
     --health-text: #1a3a52;
-    --health-text-muted: #667eaa;
+    --health-text-muted: #51689c;
     --health-border: #e1f0ff;
     --shadow-sm: 0 2px 8px rgba(0, 102, 204, 0.08);
     --shadow-md: 0 12px 32px rgba(0, 102, 204, 0.14);
@@ -304,7 +304,7 @@
 
 .alert-danger {
     background: rgba(255, 71, 87, 0.1);
-    color: var(--health-danger);
+    color: #b21f2d;
 }
 
 .alert-danger i {
@@ -322,6 +322,11 @@
 
 /* DARK MODE ADJUSTMENTS */
 @media (prefers-color-scheme: dark) {
+    /* Sobre el fondo oscuro vuelve el rojo de marca original. */
+    .alert-danger {
+        color: var(--health-danger);
+    }
+
     .form-control {
         background: var(--health-bg);
     }
