@@ -1,8 +1,16 @@
-# TODO - Mejoras ETL HealthAnalytics IPS (blackboxai)
+# TODO - Mejoras ETL HealthAnalytics IPS
+
+## Completado
+
+- [x] Corregir PDF de Analítica para generar tabla de registros clínicos con ReportLab.
+- [x] Actualizar manuales, diagramas y referencias de documentación.
+- [x] Retirar archivos de documentación innecesarios.
+
+## Pendiente
 
 - [ ] Implementar utilidades aditivas:
-  - [ ] CorrectorLinguisticoClinico (4.1 ETL_CONTEXT.md)
-  - [ ] ParserNumericoEspanol (4.2 ETL_CONTEXT.md)
+  - [ ] CorrectorLinguisticoClinico
+  - [ ] ParserNumericoEspanol
 - [ ] Persistencia de auditoría ETL:
   - [ ] Agregar modelo AuditoriaTransaccionalETL (4.3)
   - [ ] Crear migración correspondiente
@@ -13,4 +21,3 @@
 - [ ] Ejecutar verificación mínima:
   - [ ] `python backend/manage.py makemigrations && python backend/manage.py migrate`
   - [ ] (si aplica) ejecutar `python backend/manage.py run_etl` para validar carga
-
