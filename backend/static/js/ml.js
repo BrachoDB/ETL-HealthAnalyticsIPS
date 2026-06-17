@@ -21,22 +21,14 @@
     }
 
     function renderConfusionMatrix(confusionMatrix, labels) {
-        const canvas = document.getElementById('chartConfusionMatrix');
-        if (!canvas) return;
+        const container = document.getElementById('confusionMatrixTable');
+        if (!container) return;
 
-        const parent = canvas.parentElement;
-        if (!parent) return;
-
-        // Remove previous table
-        const existing = parent.querySelector('#confusionMatrixTable');
-        if (existing) existing.remove();
+        container.innerHTML = '';
 
         if (!confusionMatrix || !Array.isArray(confusionMatrix) || confusionMatrix.length === 0) {
-            const div = document.createElement('div');
-            div.id = 'confusionMatrixTable';
-            div.className = 'small text-muted mt-2';
-            div.textContent = 'Sin matriz de confusión disponible.';
-            parent.appendChild(div);
+            container.className = 'small text-muted mt-2';
+            container.textContent = 'Sin matriz de confusión disponible.';
             return;
         }
 
@@ -66,15 +58,19 @@
 
         html += '</tbody></table>';
 
-        const table = document.createElement('div');
-        table.id = 'confusionMatrixTable';
-        table.className = 'table-responsive mt-2';
-        table.innerHTML = html;
-        parent.appendChild(table);
+        container.className = 'table-responsive mt-2';
+        container.innerHTML = html;
     }
 
     async function loadMLSection() {
-        if (!api) return;
+        if (!api) {
+            const container = document.getElementById('confusionMatrixTable');
+            if (container) {
+                container.className = 'small text-warning mt-2';
+                container.textContent = 'API no disponible. Inicie sesión.';
+            }
+            return;
+        }
 
         // Asegura que el header Authorization esté presente antes de leer.
         if (typeof api.setAuthHeader === 'function') {
@@ -86,39 +82,29 @@
             const data = response.data || {};
             const metricas = data.ml_metricas;
 
-            // Cards de precisión/recall/f1
             setText('mlAccuracy', metricas ? metricas.accuracy : '-', '-');
             setText('mlRecall', metricas ? metricas.recall : '-', '-');
             setText('mlF1', metricas ? metricas.f1_score : '-', '-');
 
-            // Entrenamiento
             setText('mlAlgorithm', metricas ? metricas.model_name : '-', '-');
             setText('mlDataset', metricas ? metricas.dataset : '-', '-');
             setText('mlLastUpdate', metricas ? metricas.trained_at : '-', '-');
             setText('mlVersion', metricas ? metricas.model_version : '1.0', '1.0');
 
-            // Matriz de confusión
             renderConfusionMatrix(metricas ? metricas.confusion_matrix : null, metricas ? metricas.classes : null);
         } catch (error) {
-            // No rompa la UI si falla, pero hazlo visible en la matriz
-            // en lugar de dejar el panel silenciosamente vacío.
             console.error(error);
-            const canvas = document.getElementById('chartConfusionMatrix');
-            const parent = canvas ? canvas.parentElement : null;
-            if (parent && !parent.querySelector('#confusionMatrixTable')) {
-                const div = document.createElement('div');
-                div.id = 'confusionMatrixTable';
-                div.className = 'small text-danger mt-2';
+            const container = document.getElementById('confusionMatrixTable');
+            if (container) {
+                container.className = 'small text-danger mt-2';
                 const code = error && error.response ? ` (HTTP ${error.response.status})` : '';
-                div.textContent = `No se pudieron cargar las métricas del modelo${code}.`;
-                parent.appendChild(div);
+                container.textContent = `No se pudieron cargar las métricas del modelo${code}.`;
             }
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Solo cargar si realmente estamos en ml.html
-        if (document.getElementById('mlAccuracy') || document.getElementById('chartConfusionMatrix')) {
+        if (document.getElementById('mlAccuracy') || document.getElementById('confusionMatrixTable')) {
             loadMLSection();
         }
     });

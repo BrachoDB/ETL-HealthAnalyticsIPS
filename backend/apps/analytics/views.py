@@ -357,6 +357,7 @@ class DashboardExtrasView(APIView):
             'confusion_matrix': metrica.confusion_matrix,
             'classes': classes,
             'trained_at': metrica.trained_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'dataset': f'{Patient.objects.count()} registros clínicos',
         }
 
 

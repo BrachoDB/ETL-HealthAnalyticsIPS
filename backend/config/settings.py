@@ -16,6 +16,8 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = env('SECRET_KEY')
+_jwt_key = env('JWT_SECRET_KEY', default='')
+JWT_SECRET_KEY = _jwt_key if len(_jwt_key) >= 32 else SECRET_KEY
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
@@ -123,13 +125,21 @@ REST_FRAMEWORK = {
 }
 
 # Simple JWT Configuration
+jwt_signing_key = JWT_SECRET_KEY if len(JWT_SECRET_KEY) >= 32 else SECRET_KEY
+if len(jwt_signing_key) < 32:
+    import warnings
+    warnings.warn(
+        f"JWT signing key is {len(jwt_signing_key)} bytes long, which is below the minimum recommended length of 32 bytes for SHA256.",
+        UserWarning
+    )
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
+    'SIGNING_KEY': jwt_signing_key,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 

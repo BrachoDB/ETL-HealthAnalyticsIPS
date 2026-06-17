@@ -142,7 +142,9 @@
     <div class="col-lg-6">
         <div class="card p-3">
             <h5>Matriz de Confusión</h5>
-            <canvas id="chartConfusionMatrix"></canvas>
+            <div id="confusionMatrixTable" class="table-responsive mt-2">
+                <div class="small text-muted">Cargando métricas del modelo...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -151,6 +153,6 @@
 
 {% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}"></script>
-<script src="{% static 'js/ml.js' %}"></script>
+<script src="{% static 'js/ml.js' %}?v=3"></script>
 {% endblock %}
 
