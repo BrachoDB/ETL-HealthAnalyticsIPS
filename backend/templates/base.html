@@ -141,6 +141,33 @@
                 item.textContent = subtitle;
             }
         }
+
+        // Respaldo de seguridad de sesión.
+        // Si la página se restaura desde el caché del navegador (botón Atrás/Adelante),
+        // forzamos una recarga para revalidar la sesión: si ya fue cerrada, el servidor
+        // (login_required) redirige automáticamente al login.
+        window.addEventListener('pageshow', function (event) {
+            var nav = (window.performance && performance.getEntriesByType)
+                ? (performance.getEntriesByType('navigation')[0] || {})
+                : {};
+            if (event.persisted || nav.type === 'back_forward') {
+                window.location.reload();
+            }
+        });
+
+        // Al cerrar sesión, limpiamos también los tokens JWT del almacenamiento
+        // local para que ninguna llamada a la API recupere datos privados después.
+        document.addEventListener('DOMContentLoaded', function () {
+            var logoutForm = document.querySelector('form[action="{% url 'logout' %}"]');
+            if (logoutForm) {
+                logoutForm.addEventListener('submit', function () {
+                    if (window.HealthAnalyticsAPI
+                        && typeof window.HealthAnalyticsAPI.clearAuth === 'function') {
+                        window.HealthAnalyticsAPI.clearAuth();
+                    }
+                });
+            }
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>
