@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mi Perfil - HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div class="page-header__content">
+        <div class="page-header__icon"><i class="bi bi-person"></i></div>
+        <div class="page-header__text">
+            <span class="eyebrow">Cuenta de usuario</span>
+            <h1 class="page-header__title">Mi Perfil</h1>
+            <p class="page-header__subtitle">Consulta y actualiza tus datos personales.</p>
+        </div>
+    </div>
+</div>
+
+{% if success %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle"></i> {{ success }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+</div>
+{% endif %}
+
+{% if errors %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-circle"></i> <strong>Revisa los siguientes datos:</strong>
+    <ul class="mb-0 mt-1">
+        {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card p-4 text-center h-100">
+            <div class="user-avatar mx-auto mb-3" style="width: 72px; height: 72px; font-size: 1.8rem;">
+                {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+            </div>
+            <h5 class="mb-1">{{ user.get_full_name|default:user.username }}</h5>
+            <p class="text-muted small mb-2">{{ user.email|default:"Sin correo registrado" }}</p>
+            <span class="badge bg-primary">{{ user.get_role_display }}</span>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card p-4 h-100">
+            <h5 class="mb-3"><i class="bi bi-pencil-square"></i> Datos personales</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="id_username">Usuario</label>
+                        <input type="text" class="form-control" id="id_username"
+                               value="{{ user.username }}" disabled>
+                        <div class="form-text">El nombre de usuario no se puede modificar.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="id_role">Rol</label>
+                        <input type="text" class="form-control" id="id_role"
+                               value="{{ user.get_role_display }}" disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="id_first_name">Nombre</label>
+                        <input type="text" class="form-control" id="id_first_name" name="first_name"
+                               value="{% if form_data %}{{ form_data.first_name }}{% else %}{{ user.first_name }}{% endif %}"
+                               maxlength="150" placeholder="Tu nombre">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="id_last_name">Apellido</label>
+                        <input type="text" class="form-control" id="id_last_name" name="last_name"
+                               value="{% if form_data %}{{ form_data.last_name }}{% else %}{{ user.last_name }}{% endif %}"
+                               maxlength="150" placeholder="Tu apellido">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="id_email">Correo electrónico</label>
+                        <input type="email" class="form-control" id="id_email" name="email"
+                               value="{% if form_data %}{{ form_data.email }}{% else %}{{ user.email }}{% endif %}"
+                               placeholder="nombre@dominio.com">
+                    </div>
+                </div>
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-elevated">
+                        <i class="bi bi-save"></i> Guardar cambios
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-clinical">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var bc = document.getElementById('breadcrumb-current');
+    if (bc) { bc.textContent = 'Mi Perfil'; }
+</script>
+{% endblock %}
