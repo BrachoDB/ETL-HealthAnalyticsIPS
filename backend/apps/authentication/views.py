@@ -38,10 +38,16 @@ def session_login_view(request):
 
     username = payload.get('username')
     password = payload.get('password')
+    remember = str(payload.get('remember', '')).lower() in ('1', 'true', 'on', 'yes')
     user = authenticate(request, username=username, password=password)
 
     if user is None:
         return JsonResponse({'detail': 'Credenciales inválidas'}, status=401)
 
     login(request, user)
+
+    # "Recordarme": si está marcado, la sesión persiste según SESSION_COOKIE_AGE
+    # (valor por defecto de Django). Si no, expira al cerrar el navegador.
+    request.session.set_expiry(None if remember else 0)
+
     return JsonResponse({'status': 'ok'})
