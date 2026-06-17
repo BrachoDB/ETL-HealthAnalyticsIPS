@@ -3,6 +3,7 @@
     const isDashboard = Boolean(document.getElementById('dashboardPage'));
     const isAnalytics = Boolean(document.getElementById('analyticsPage'));
     const isPacientes = Boolean(document.getElementById('pacientesPage'));
+    const isEtlPage = Boolean(document.getElementById('kpiArchivos'));
     const shouldLoadAnalytics = isDashboard || isAnalytics;
     let pacientesRecientes = [];
     let activeRiskFilter = 'todos';
@@ -337,6 +338,24 @@
         `;
     }
 
+    async function loadEtlStats() {
+        try {
+            const response = await api.get('/api/pacientes/logs/stats/');
+            const data = response.data;
+
+            setText('kpiArchivos', data.archivos_procesados);
+            setText('kpiValidos', data.registros_validos);
+            setText('kpiErrores', data.errores);
+        } catch (error) {
+            console.error(error);
+            if (api.isAuthError(error)) {
+                redirectLogin();
+                return;
+            }
+            showError(formatApiError(error, 'No fue posible cargar las estadísticas del ETL'));
+        }
+    }
+
     async function loadLogs() {
         try {
             const response = await api.get('/api/pacientes/logs/');
@@ -347,15 +366,21 @@
             }
 
             tbody.innerHTML = '';
-            const rows = logs.map(log => `
+            const rows = logs.map(log => {
+                const archivo = log.source_file
+                    ? log.source_file.split(/[\\/]/).pop()
+                    : (log.source_type || '—');
+                return `
                 <tr>
                     <td>${formatDate(log.fecha_ejecucion)}</td>
+                    <td title="${escapeHTML(log.source_file || '')}">${escapeHTML(archivo)}</td>
                     <td>${escapeHTML(log.registros_procesados)}</td>
                     <td>${formatNumber(log.tiempo_ejecucion)}</td>
                     <td><span class="badge ${log.estado === 'Exitoso' ? 'bg-success' : 'bg-danger'}">${escapeHTML(log.estado)}</span></td>
                     <td class="logs-details">${formatLogDetails(log.detalles)}</td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
             tbody.innerHTML = rows;
         } catch (error) {
             console.error(error);
@@ -402,7 +427,10 @@
             result.className = 'mt-3 alert alert-success upload-result';
             result.textContent = response.data.status;
             form.reset();
-            setTimeout(loadLogs, 5000);
+            setTimeout(() => {
+                loadLogs();
+                loadEtlStats();
+            }, 5000);
         } catch (error) {
             result.className = 'mt-3 alert alert-danger upload-result';
             result.textContent = error.response?.data?.error || 'Error al subir archivo. Revise columnas requeridas y rangos clínicos.';
@@ -420,7 +448,10 @@
         try {
             await api.post('/api/pacientes/logs/run/');
             alert('Proceso ETL ejecutado. Revise el histórico de logs.');
-            setTimeout(loadLogs, 5000);
+            setTimeout(() => {
+                loadLogs();
+                loadEtlStats();
+            }, 5000);
         } catch (error) {
             showError(api.isAuthError(error) ? 'Sesión expirada.' : 'Error al iniciar ETL');
             if (api.isAuthError(error)) {
@@ -501,6 +532,14 @@
             refreshLogsButton.addEventListener('click', loadLogs);
         }
 
+        const refreshStatusButton = document.getElementById('btnRefreshStatus');
+        if (refreshStatusButton) {
+            refreshStatusButton.addEventListener('click', () => {
+                loadEtlStats();
+                loadLogs();
+            });
+        }
+
         const patientFilter = document.getElementById('filtroPacientes');
         if (patientFilter) {
             patientFilter.addEventListener('input', () => renderPacientes(pacientesRecientes));
@@ -532,6 +571,11 @@
 
         if (isPacientes) {
             loadDashboardExtras();
+        }
+
+        if (isEtlPage) {
+            loadEtlStats();
+            loadLogs();
         }
     });
 })();
