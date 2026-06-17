@@ -253,7 +253,7 @@ body {
     border-radius: 999px;
     padding: 0.42rem 0.75rem;
     background: var(--color-surface-muted);
-    color: var(--color-text-muted);
+    color: var(--color-text);
     font-weight: 800;
     cursor: pointer;
     transition: all 200ms ease;

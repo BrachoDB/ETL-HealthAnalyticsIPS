@@ -326,6 +326,7 @@
                 <thead>
                     <tr>
                         <th>Fecha</th>
+                        <th>Archivo</th>
                         <th>Procesados</th>
                         <th>Tiempo (s)</th>
                         <th>Estado</th>
@@ -341,5 +342,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboard.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}?v=2"></script>
 {% endblock %}

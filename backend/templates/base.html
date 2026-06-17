@@ -5,6 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}HealthAnalytics IPS{% endblock %}</title>
+    <script>
+        // Sincroniza el tema de Bootstrap con la preferencia del sistema operativo.
+        // Sin esto, los componentes de Bootstrap (.text-muted, tablas, dropdowns)
+        // conservan su texto oscuro y se camuflan sobre el fondo oscuro.
+        (function () {
+            var prefersDark = window.matchMedia
+                && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
+        })();
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
@@ -16,10 +26,18 @@
     <!-- NAVBAR SUPERIOR -->
     <nav class="navbar-top">
         <div class="d-flex align-items-center justify-content-between w-100">
-            <a href="{% url 'dashboard' %}" class="navbar-brand">
-                <i class="bi bi-hospital"></i>
-                <span>HealthAnalytics</span>
-            </a>
+            <div class="d-flex align-items-center gap-2">
+                <button class="sidebar-toggle d-md-none" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#sidebarMenu"
+                        aria-controls="sidebarMenu" aria-expanded="false"
+                        aria-label="Abrir menú de navegación">
+                    <i class="bi bi-list"></i>
+                </button>
+                <a href="{% url 'dashboard' %}" class="navbar-brand">
+                    <i class="bi bi-hospital"></i>
+                    <span>HealthAnalytics</span>
+                </a>
+            </div>
 
             <div class="navbar-center d-none d-md-flex">
                 <div class="breadcrumb">
@@ -40,8 +58,8 @@
                         <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
                     </div>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Mi Perfil</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Configuración</a></li>
+                        <li><a class="dropdown-item" href="{% url 'perfil' %}"><i class="bi bi-person"></i> Mi Perfil</a></li>
+                        <li><a class="dropdown-item" href="{% url 'configuracion' %}"><i class="bi bi-gear"></i> Configuración</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form action="{% url 'logout' %}" method="post" style="display: inline;">
@@ -60,7 +78,7 @@
     <div class="container-fluid">
         <div class="row">
             <!-- SIDEBAR -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="position-sticky pt-3">
                     <h5 class="px-3 mb-4">
                         <i class="bi bi-layers"></i>
@@ -131,6 +149,33 @@
                 item.textContent = subtitle;
             }
         }
+
+        // Respaldo de seguridad de sesión.
+        // Si la página se restaura desde el caché del navegador (botón Atrás/Adelante),
+        // forzamos una recarga para revalidar la sesión: si ya fue cerrada, el servidor
+        // (login_required) redirige automáticamente al login.
+        window.addEventListener('pageshow', function (event) {
+            var nav = (window.performance && performance.getEntriesByType)
+                ? (performance.getEntriesByType('navigation')[0] || {})
+                : {};
+            if (event.persisted || nav.type === 'back_forward') {
+                window.location.reload();
+            }
+        });
+
+        // Al cerrar sesión, limpiamos también los tokens JWT del almacenamiento
+        // local para que ninguna llamada a la API recupere datos privados después.
+        document.addEventListener('DOMContentLoaded', function () {
+            var logoutForm = document.querySelector('form[action="{% url 'logout' %}"]');
+            if (logoutForm) {
+                logoutForm.addEventListener('submit', function () {
+                    if (window.HealthAnalyticsAPI
+                        && typeof window.HealthAnalyticsAPI.clearAuth === 'function') {
+                        window.HealthAnalyticsAPI.clearAuth();
+                    }
+                });
+            }
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>

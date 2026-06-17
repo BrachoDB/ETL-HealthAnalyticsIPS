@@ -36,6 +36,19 @@
             return;
         }
 
+        // Al presionar Enter en el usuario, pasamos el foco a la contraseña
+        // en lugar de enviar el formulario incompleto.
+        const usernameField = document.getElementById('username');
+        const passwordField = document.getElementById('password');
+        if (usernameField && passwordField) {
+            usernameField.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    passwordField.focus();
+                }
+            });
+        }
+
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuración - HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div class="page-header__content">
+        <div class="page-header__icon"><i class="bi bi-gear"></i></div>
+        <div class="page-header__text">
+            <span class="eyebrow">Preferencias de cuenta</span>
+            <h1 class="page-header__title">Configuración</h1>
+            <p class="page-header__subtitle">Gestiona la seguridad de tu cuenta.</p>
+        </div>
+    </div>
+</div>
+
+{% if success %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle"></i> {{ success }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card p-4 h-100">
+            <h5 class="mb-3"><i class="bi bi-shield-lock"></i> Cambiar contraseña</h5>
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label" for="id_old_password">Contraseña actual</label>
+                    <input type="password" class="form-control {% if form.old_password.errors %}is-invalid{% endif %}"
+                           id="id_old_password" name="old_password" autocomplete="current-password" required>
+                    {% for error in form.old_password.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="id_new_password1">Nueva contraseña</label>
+                    <input type="password" class="form-control {% if form.new_password1.errors %}is-invalid{% endif %}"
+                           id="id_new_password1" name="new_password1" autocomplete="new-password" required>
+                    {% for error in form.new_password1.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                    {% if form.new_password1.help_text %}
+                    <div class="form-text">{{ form.new_password1.help_text|safe }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="id_new_password2">Confirmar nueva contraseña</label>
+                    <input type="password" class="form-control {% if form.new_password2.errors %}is-invalid{% endif %}"
+                           id="id_new_password2" name="new_password2" autocomplete="new-password" required>
+                    {% for error in form.new_password2.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-elevated">
+                        <i class="bi bi-save"></i> Actualizar contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card p-4 h-100">
+            <h5 class="mb-3"><i class="bi bi-info-circle"></i> Información de la cuenta</h5>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between bg-transparent px-0">
+                    <span class="text-muted">Usuario</span>
+                    <strong>{{ user.username }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between bg-transparent px-0">
+                    <span class="text-muted">Correo</span>
+                    <strong>{{ user.email|default:"—" }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between bg-transparent px-0">
+                    <span class="text-muted">Rol</span>
+                    <strong>{{ user.get_role_display }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between bg-transparent px-0">
+                    <span class="text-muted">Último acceso</span>
+                    <strong>{{ user.last_login|date:"d/m/Y H:i"|default:"—" }}</strong>
+                </li>
+            </ul>
+            <a href="{% url 'perfil' %}" class="btn btn-outline-clinical mt-3">
+                <i class="bi bi-person"></i> Editar datos personales
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var bc = document.getElementById('breadcrumb-current');
+    if (bc) { bc.textContent = 'Configuración'; }
+</script>
+{% endblock %}

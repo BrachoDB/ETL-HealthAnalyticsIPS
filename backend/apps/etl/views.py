@@ -1,8 +1,11 @@
 import os
 import uuid
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
+from django.db.models import Count, Sum
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -37,6 +40,42 @@ class ETLLogViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'run':
             return [IsAdminOrMedico()]
         return [IsReadOnlyClinicalRole()]
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """KPIs agregados para el tablero ETL.
+
+        - archivos_procesados: ejecuciones registradas en los últimos 30 días.
+        - registros_validos: total de registros cargados correctamente.
+        - errores: total de registros rechazados por validaciones/duplicados.
+
+        Se agrega sobre la tabla ETLLog (no sobre Patient), que es donde el
+        servicio `run_etl` persiste el resultado de cada corrida.
+        """
+        ultimo_mes = timezone.now() - timedelta(days=30)
+
+        # Conteo de archivos/ejecuciones del último mes.
+        archivos_procesados = (
+            ETLLog.objects.filter(fecha_ejecucion__gte=ultimo_mes).count()
+        )
+
+        # Sumatorias globales. `Sum` devuelve None cuando no hay filas:
+        # por eso se normaliza con `or 0` para no romper el frontend.
+        totales = ETLLog.objects.aggregate(
+            validos=Sum('registros_validos'),
+            errores=Sum('registros_invalidos'),
+            total_ejecuciones=Count('id'),
+        )
+
+        return Response(
+            {
+                'archivos_procesados': archivos_procesados,
+                'registros_validos': totales['validos'] or 0,
+                'errores': totales['errores'] or 0,
+                'total_ejecuciones': totales['total_ejecuciones'] or 0,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=False, methods=['post'])
     def run(self, request):

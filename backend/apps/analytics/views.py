@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.analytics.models import ExportAudit
-from apps.analytics.serializers import DashboardExtrasSerializer, KPISerializer, PatientExportFormatSerializer
+from apps.analytics.serializers import DashboardExtrasSerializer, ExportAuditSerializer, KPISerializer, PatientExportFormatSerializer
 from apps.authentication.permissions import CanExportAnalytics, IsReadOnlyClinicalRole
 from apps.etl.models import Patient
 from apps.ml.models import MLModelMetrics
@@ -357,7 +357,30 @@ class DashboardExtrasView(APIView):
             'confusion_matrix': metrica.confusion_matrix,
             'classes': classes,
             'trained_at': metrica.trained_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'dataset': f'{Patient.objects.count()} registros clínicos',
         }
+
+
+class ExportAuditListView(APIView):
+    """Ruta de lectura del Histórico de Descargas.
+
+    Expone los registros ya persistidos en ExportAudit (no genera nada nuevo).
+    El frontend (reportes.js) consume esta vista para poblar #tableDownloads.
+    """
+
+    permission_classes = [IsReadOnlyClinicalRole]
+    serializer_class = ExportAuditSerializer
+
+    def get(self, request):
+        try:
+            limit = int(request.GET.get('limit', 25))
+        except (TypeError, ValueError):
+            limit = 25
+        limit = max(1, min(limit, 200))
+
+        queryset = ExportAudit.objects.select_related('usuario').all()[:limit]
+        data = ExportAuditSerializer(queryset, many=True).data
+        return Response({'total': len(data), 'resultados': data})
 
 
 class PatientExportView(APIView):

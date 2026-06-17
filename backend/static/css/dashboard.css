@@ -44,7 +44,7 @@
 
 .stat-card span {
     display: block;
-    color: #cbd5e1;
+    color: var(--color-text-muted);
     font-size: 0.82rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -60,7 +60,7 @@
 }
 
 .stat-card small {
-    color: #cbd5e1;
+    color: var(--color-text-muted);
     font-size: 0.75rem;
 }
 
@@ -73,7 +73,7 @@
 }
 
 .stat-card--red {
-    color: var(--risk-critico);
+    color: oklch(50% 0.20 25);
 }
 
 .stat-card--red .stat-card__icon {
@@ -81,7 +81,7 @@
 }
 
 .stat-card--amber {
-    color: var(--risk-alto);
+    color: oklch(50% 0.14 70);
 }
 
 .stat-card--amber .stat-card__icon {
@@ -89,7 +89,7 @@
 }
 
 .stat-card--cyan {
-    color: var(--color-teal);
+    color: oklch(48% 0.13 175);
 }
 
 .stat-card--cyan .stat-card__icon {
@@ -112,18 +112,22 @@
 
 .risk-badge.bajo {
     background: var(--risk-bajo);
+    color: oklch(25% 0.06 145);
 }
 
 .risk-badge.medio {
     background: var(--risk-medio);
+    color: oklch(28% 0.07 90);
 }
 
 .risk-badge.alto {
-    background: var(--risk-alto);
+    background: oklch(52% 0.20 45);
+    color: #fff;
 }
 
 .risk-badge.critico {
-    background: var(--risk-critico);
+    background: oklch(50% 0.22 25);
+    color: #fff;
 }
 
 .upload-result {
@@ -178,25 +182,48 @@
 .alert-info {
     background: rgba(13, 110, 253, 0.15);
     border-color: #0d6efd;
-    color: #93c5fd;
+    color: #084c8d;
 }
 
 .alert-success {
     background: rgba(34, 197, 94, 0.15);
     border-color: #22c55e;
-    color: #86efac;
+    color: #0f5132;
 }
 
 .alert-danger {
     background: rgba(239, 68, 68, 0.15);
     border-color: #ef4444;
-    color: #fca5a5;
+    color: #842029;
 }
 
 .alert-warning {
     background: rgba(245, 158, 11, 0.15);
     border-color: #f59e0b;
-    color: #fcd34d;
+    color: #664d03;
+}
+
+/* En dark mode los fondos translúcidos son oscuros: vuelven los
+   tonos claros originales para mantener el contraste. */
+@media (prefers-color-scheme: dark) {
+    .alert-info { color: #93c5fd; }
+    .alert-success { color: #86efac; }
+    .alert-danger { color: #fca5a5; }
+    .alert-warning { color: #fcd34d; }
+
+    /* Números de las stat-cards: en claro se oscurecen para contrastar
+       con el blanco; en oscuro deben volver a ser claros/luminosos. */
+    .stat-card--blue { color: oklch(70% 0.15 205); }
+    .stat-card--amber { color: oklch(82% 0.13 75); }
+    .stat-card--red { color: oklch(72% 0.18 25); }
+    .stat-card--cyan { color: oklch(78% 0.13 175); }
+
+    /* .bg-light de Bootstrap queda como isla clara sobre el tema oscuro:
+       se adapta a la superficie oscura de la paleta. */
+    .bg-light {
+        background-color: var(--color-surface-muted) !important;
+        color: var(--color-text);
+    }
 }
 
 /* SHORTCUTS */
