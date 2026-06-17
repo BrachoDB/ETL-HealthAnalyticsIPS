@@ -22,7 +22,7 @@
         <button type="button" class="btn btn-outline-clinical" data-export="csv">
             <i class="bi bi-file-earmark-spreadsheet"></i> CSV
         </button>
-        <button type="button" class="btn btn-outline-clinical" data-export="pdf">
+        <button type="button" class="btn btn-outline-clinical" id="btnAnalyticsPdf">
             <i class="bi bi-file-earmark-pdf"></i> PDF
         </button>
     </div>
@@ -130,4 +130,50 @@
 
 {% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const api = window.HealthAnalyticsAPI;
+        const button = document.getElementById('btnAnalyticsPdf');
+        if (!api || !button || !api.get) {
+            return;
+        }
+
+        button.addEventListener('click', async function (event) {
+            event.stopImmediatePropagation();
+
+            const originalHtml = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
+
+            try {
+                api.setAuthHeader();
+                const response = await api.get('/api/analytics/export/pdf/', {
+                    responseType: 'blob',
+                });
+
+                const blob = new Blob([response.data], {
+                    type: response.headers['content-type'] || 'application/pdf',
+                });
+                const contentDisposition = response.headers['content-disposition'] || '';
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+                const filename = filenameMatch ? filenameMatch[1] : `analitica_${new Date().toISOString().slice(0, 10).replaceAll('-', '')}.pdf`;
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                alert(error.response?.data?.error || 'Error al generar el PDF');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            }
+        }, true);
+    });
+})();
+</script>
 {% endblock %}

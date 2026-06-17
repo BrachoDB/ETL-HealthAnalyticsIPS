@@ -1,17 +1,18 @@
 from datetime import date
 from io import BytesIO
 from statistics import mean, median, mode, stdev
+from xml.sax.saxutils import escape
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import pandas as pd
 from django.http import HttpResponse
+from django.db.models import Avg, Count, Q
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Avg, Count, Q
-from matplotlib.backends.backend_pdf import PdfPages
 
 from apps.analytics.models import ExportAudit
 from apps.analytics.serializers import DashboardExtrasSerializer, KPISerializer, PatientExportFormatSerializer
@@ -395,15 +396,80 @@ class PatientExportView(APIView):
             return response
 
         if export_format == 'pdf':
+            styles = getSampleStyleSheet()
+            styles['Title'].fontSize = 16
+            styles['Heading2'].fontSize = 12
+            styles['Normal'].fontSize = 8
+            styles['Normal'].leading = 9
+
+            def cell(value):
+                if value is None:
+                    value = ''
+                if hasattr(value, 'strftime'):
+                    value = value.strftime('%Y-%m-%d')
+                return Paragraph(escape(str(value)), styles['Normal'])
+
+            table_data = [[
+                'ID',
+                'Paciente',
+                'Edad',
+                'Sexo',
+                'Diagnóstico',
+                'Riesgo',
+                'PAS',
+                'Glucosa',
+                'Sat. O2',
+                'Fecha',
+            ]]
+
+            for row in pacientes:
+                table_data.append([
+                    row.get('id_paciente', ''),
+                    f"{row.get('nombres', '')} {row.get('apellidos', '')}".strip(),
+                    row.get('edad', ''),
+                    row.get('sexo', ''),
+                    row.get('diagnostico_preliminar', ''),
+                    row.get('riesgo_enfermedad', ''),
+                    row.get('presion_sistolica', ''),
+                    row.get('glucosa', ''),
+                    row.get('saturacion_oxigeno', ''),
+                    row.get('fecha_consulta', ''),
+                ])
+
+            table_data = [[cell(item) for item in row] for row in table_data]
+            table = Table(table_data, repeatRows=1, colWidths=[35, 115, 35, 55, 130, 55, 45, 55, 55, 75])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 7),
+                ('ROWHEIGHT', (0, 1), (-1, -1), 20),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ]))
+
             output = BytesIO()
-            with PdfPages(output) as pdf:
-                fig = plt.figure(figsize=(11, 8.5))
-                fig.text(0.08, 0.94, 'HealthAnalytics IPS - Exportación de Pacientes', fontsize=16, weight='bold')
-                fig.text(0.08, 0.90, f'Fecha: {date.today().strftime("%d/%m/%Y")}', fontsize=11)
-                fig.text(0.08, 0.86, f'Total pacientes: {len(df)}', fontsize=11)
-                fig.text(0.08, 0.80, 'Columnas exportadas: ' + ', '.join(df.columns), fontsize=9, wrap=True)
-                pdf.savefig(fig)
-                plt.close(fig)
+            doc = SimpleDocTemplate(
+                output,
+                pagesize=landscape(letter),
+                rightMargin=18,
+                leftMargin=18,
+                topMargin=18,
+                bottomMargin=18,
+            )
+            elements = [
+                Paragraph('HealthAnalytics IPS - Analítica de Pacientes', styles['Title']),
+                Paragraph(f'Fecha: {date.today().strftime("%d/%m/%Y")}', styles['Normal']),
+                Paragraph(f'Total registros: {len(df)}', styles['Normal']),
+                Spacer(1, 8),
+                Paragraph('Registros clínicos', styles['Heading2']),
+                Spacer(1, 8),
+                table,
+            ]
+            doc.build(elements)
+
             response = HttpResponse(output.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
             return response
