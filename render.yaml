@@ -11,7 +11,7 @@ services:
     # build.sh installs deps, runs collectstatic and migrate (inside backend/).
     buildCommand: "bash ./build.sh"
     # Gunicorn is the production WSGI server. $PORT is provided by Render.
-    startCommand: "cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120"
+    startCommand: "cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300"
     healthCheckPath: /api/docs/
     envVars:
       - key: PYTHON_VERSION
