@@ -76,6 +76,11 @@
     async function loadMLSection() {
         if (!api) return;
 
+        // Asegura que el header Authorization esté presente antes de leer.
+        if (typeof api.setAuthHeader === 'function') {
+            api.setAuthHeader();
+        }
+
         try {
             const response = await api.get('/api/analytics/dashboard-extras/');
             const data = response.data || {};
@@ -95,9 +100,19 @@
             // Matriz de confusión
             renderConfusionMatrix(metricas ? metricas.confusion_matrix : null, metricas ? metricas.classes : null);
         } catch (error) {
-            // No rompa la UI si falla
+            // No rompa la UI si falla, pero hazlo visible en la matriz
+            // en lugar de dejar el panel silenciosamente vacío.
             console.error(error);
-            // Mantener placeholders
+            const canvas = document.getElementById('chartConfusionMatrix');
+            const parent = canvas ? canvas.parentElement : null;
+            if (parent && !parent.querySelector('#confusionMatrixTable')) {
+                const div = document.createElement('div');
+                div.id = 'confusionMatrixTable';
+                div.className = 'small text-danger mt-2';
+                const code = error && error.response ? ` (HTTP ${error.response.status})` : '';
+                div.textContent = `No se pudieron cargar las métricas del modelo${code}.`;
+                parent.appendChild(div);
+            }
         }
     }
 

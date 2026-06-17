@@ -25,3 +25,19 @@ class DashboardExtrasSerializer(serializers.Serializer):
 
 class PatientExportFormatSerializer(serializers.Serializer):
     export_format = serializers.ChoiceField(choices=['xlsx', 'csv', 'pdf'])
+
+
+class ExportAuditSerializer(serializers.Serializer):
+    """Serializa el histórico de descargas (ExportAudit) para el dashboard."""
+
+    id = serializers.IntegerField()
+    created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S')
+    export_format = serializers.CharField()
+    export_format_display = serializers.CharField(source='get_export_format_display')
+    total_rows = serializers.IntegerField()
+    usuario = serializers.SerializerMethodField()
+
+    def get_usuario(self, obj):
+        if not obj.usuario:
+            return 'Sistema'
+        return getattr(obj.usuario, 'email', None) or obj.usuario.get_username()

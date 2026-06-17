@@ -5,9 +5,9 @@
         if (value === null || value === undefined) return '';
         return String(value)
             .replaceAll('&', '&amp;')
-            .replaceAll('<', '<')
-            .replaceAll('>', '>')
-            .replaceAll('"', '"')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
             .replaceAll("'", '&#039;');
     }
 
@@ -147,11 +147,63 @@
         });
     }
 
+    const FORMAT_BADGE = {
+        xlsx: 'bg-success',
+        csv: 'bg-info',
+        pdf: 'bg-danger',
+    };
+
+    function renderDownloads(rows) {
+        const tbody = document.getElementById('tableDownloads');
+        if (!tbody) return;
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No hay descargas disponibles</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map((row) => {
+            const formato = String(row.export_format || '').toLowerCase();
+            const badge = FORMAT_BADGE[formato] || 'bg-secondary';
+            return `
+                <tr>
+                    <td>${escapeHTML(row.created_at)}</td>
+                    <td>${escapeHTML(row.export_format_display || formato.toUpperCase())}</td>
+                    <td><span class="badge ${badge}">${escapeHTML(formato.toUpperCase())}</span></td>
+                    <td><span class="badge bg-success">Completado</span></td>
+                    <td class="text-muted small">${escapeHTML(row.total_rows)} filas · ${escapeHTML(row.usuario)}</td>
+                </tr>`;
+        }).join('');
+    }
+
+    async function loadDownloads() {
+        const tbody = document.getElementById('tableDownloads');
+        if (!tbody) return;
+
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm"></span> Cargando...</td></tr>';
+        try {
+            const response = await api.get('/api/analytics/export-audit/');
+            renderDownloads(response.data ? response.data.resultados : []);
+        } catch (error) {
+            console.error(error);
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">No se pudo cargar el histórico de descargas.</td></tr>';
+        }
+    }
+
+    function bindDownloadsHistory() {
+        const btn = document.getElementById('btnRefreshDownloads');
+        if (btn) {
+            btn.addEventListener('click', loadDownloads);
+        }
+        loadDownloads();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         if (!api) return;
         api.setAuthHeader();
         bindPdfForm();
         bindExportForm();
+        bindDownloadsHistory();
     });
 })();
 
