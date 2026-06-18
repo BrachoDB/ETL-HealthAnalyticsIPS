@@ -102,6 +102,7 @@ class ETLService:
             registros_actualizados = 0
             registros_creados = 0
 
+            pending_upserts = {}
             for original_index, row in df.iterrows():
                 row_number = int(original_index) + 2
                 validation_errors = self._validate_clinical_ranges(row)
@@ -117,16 +118,10 @@ class ETLService:
                 if duplicate_key in duplicate_keys:
                     continue
 
-                existed = Patient.objects.filter(id_paciente=patient_id).exists()
-                Patient.objects.update_or_create(
-                    id_paciente=patient_id,
-                    defaults=self._patient_defaults(row),
-                )
-                registros_procesados += 1
-                if existed:
-                    registros_actualizados += 1
-                else:
-                    registros_creados += 1
+                pending_upserts[patient_id] = self._patient_defaults(row)
+
+            registros_creados, registros_actualizados = self._bulk_upsert(pending_upserts)
+            registros_procesados = registros_creados + registros_actualizados
 
             end_time = time.time()
             finished_at = timezone.now()
@@ -218,6 +213,35 @@ class ETLService:
                 registros_actualizados=0,
                 registros_creados=0,
             )
+
+    def _bulk_upsert(self, defaults_by_id, batch_size=500):
+        if not defaults_by_id:
+            return 0, 0
+
+        existing = {
+            patient.id_paciente: patient
+            for patient in Patient.objects.filter(id_paciente__in=list(defaults_by_id.keys()))
+        }
+
+        to_create = []
+        to_update = []
+        update_fields = set()
+        for patient_id, defaults in defaults_by_id.items():
+            patient = existing.get(patient_id)
+            if patient is None:
+                to_create.append(Patient(id_paciente=patient_id, **defaults))
+            else:
+                for field, value in defaults.items():
+                    setattr(patient, field, value)
+                to_update.append(patient)
+                update_fields.update(defaults.keys())
+
+        if to_create:
+            Patient.objects.bulk_create(to_create, batch_size=batch_size)
+        if to_update:
+            Patient.objects.bulk_update(to_update, fields=list(update_fields), batch_size=batch_size)
+
+        return len(to_create), len(to_update)
 
     def _resolve_file_path(self, file_path):
         if file_path:
