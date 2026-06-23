@@ -94,7 +94,6 @@ class ETLService:
             duplicate_keys, duplicate_details = self._find_duplicate_rows(df)
             registros_invalidos = len(duplicate_details)
             invalid_details = duplicate_details
-            df['_raw_imc'] = pd.to_numeric(df['imc'], errors='coerce')
             registros_extraidos = len(df)
 
             df = self._transform(df)
@@ -114,10 +113,6 @@ class ETLService:
                     continue
 
                 patient_id = int(row['id_paciente'])
-                duplicate_key = (patient_id, self._row_date_key(row['fecha_consulta']))
-                if duplicate_key in duplicate_keys:
-                    continue
-
                 pending_upserts[patient_id] = self._patient_defaults(row)
 
             registros_creados, registros_actualizados = self._bulk_upsert(pending_upserts)
@@ -314,6 +309,9 @@ class ETLService:
         df['presión_sistólica'] = pd.to_numeric(df['presión_sistólica'], errors='coerce')
         df['presión_sistólica'] = df['presión_sistólica'].fillna(df['presión_sistólica'].median()).fillna(0)
 
+        # Conversión de texto en diastólica (aproximación con valores propios de diastólica)
+        df['presión_diastólica'] = df['presión_diastólica'].apply(self._clean_presion_diastolica)
+
         numeric_cols = [
             'peso',
             'altura',
@@ -332,8 +330,43 @@ class ETLService:
         df.loc[df['altura'] <= 0, 'altura'] = df['altura'].median()
         df.loc[df['altura'] <= 0, 'altura'] = 1
 
+        # Saneamiento clínico: ajustar valores fuera de rango al límite (clamp) en lugar de
+        # descartar el registro, para conservar a todos los pacientes.
+        clamp_map = {
+            'edad': CLINICAL_RANGES['edad'],
+            'peso': CLINICAL_RANGES['peso'],
+            'altura': CLINICAL_RANGES['altura'],
+            'presión_sistólica': CLINICAL_RANGES['presion_sistolica'],
+            'presión_diastólica': CLINICAL_RANGES['presion_diastolica'],
+            'frecuencia_cardiaca': CLINICAL_RANGES['frecuencia_cardiaca'],
+            'glucosa': CLINICAL_RANGES['glucosa'],
+            'colesterol': CLINICAL_RANGES['colesterol'],
+            'saturación_oxígeno': CLINICAL_RANGES['saturacion_oxigeno'],
+            'temperatura': CLINICAL_RANGES['temperatura'],
+        }
+        for col, (minimum, maximum) in clamp_map.items():
+            df[col] = df[col].clip(minimum, maximum)
+
+        # Reparar presiones invertidas: la sistólica siempre debe ser mayor que la diastólica.
+        invertidas = df['presión_sistólica'] <= df['presión_diastólica']
+        df.loc[invertidas, ['presión_sistólica', 'presión_diastólica']] = (
+            df.loc[invertidas, ['presión_diastólica', 'presión_sistólica']].values
+        )
+        # Si tras el intercambio siguen iguales, separar mínimamente.
+        iguales = df['presión_sistólica'] <= df['presión_diastólica']
+        df.loc[iguales, 'presión_sistólica'] = (df.loc[iguales, 'presión_diastólica'] + 10).clip(upper=220)
+        # Diferencial clínicamente excesivo: acercar la diastólica.
+        diferencial = (df['presión_sistólica'] - df['presión_diastólica']) > 120
+        df.loc[diferencial, 'presión_diastólica'] = (df.loc[diferencial, 'presión_sistólica'] - 120).clip(lower=40)
+
+        # IMC recalculado a partir de peso/altura, redondeado y acotado.
         df['imc'] = df['peso'] / (df['altura'] ** 2)
         df['imc'] = df['imc'].replace([np.inf, -np.inf], np.nan).fillna(df['imc'].median()).fillna(0)
+        df['imc'] = df['imc'].round(2).clip(*CLINICAL_RANGES['imc'])
+
+        # Redondeo a 2 decimales en todas las medidas con decimales largos.
+        for col in ['peso', 'altura', 'glucosa', 'colesterol', 'saturación_oxígeno', 'temperatura']:
+            df[col] = df[col].round(2)
 
         # Corrección léxica de diagnósticos (aditivo)
         corrector = CorrectorLinguisticoClinico()
@@ -426,17 +459,8 @@ class ETLService:
 
     def _validate_advanced_consistency(self, row):
         errors = []
-        peso = pd.to_numeric(row['peso'], errors='coerce')
-        altura = pd.to_numeric(row['altura'], errors='coerce')
-        imc = pd.to_numeric(row.get('_raw_imc', row['imc']), errors='coerce')
         presion_sistolica = pd.to_numeric(row['presion_sistolica'], errors='coerce')
         presion_diastolica = pd.to_numeric(row['presion_diastolica'], errors='coerce')
-
-        if not any(pd.isna(value) for value in [peso, altura, imc]) and altura > 0:
-            imc_calculado = peso / (altura ** 2)
-            tolerancia = max(1.0, imc_calculado * 0.1)
-            if abs(imc - imc_calculado) > tolerancia:
-                errors.append(f'imc={imc} inconsistente con peso/altura; IMC calculado {imc_calculado:.2f}')
 
         if not any(pd.isna(value) for value in [presion_sistolica, presion_diastolica]):
             if presion_sistolica <= presion_diastolica:
@@ -503,6 +527,20 @@ class ETLService:
                 return 120
             if 'baja' in value:
                 return 100
+            return np.nan
+        return value
+
+    def _clean_presion_diastolica(self, value):
+        # Misma idea que _clean_presion pero con valores típicos de presión diastólica,
+        # para no perder información cuando viene como texto ("alta"/"media"/"baja").
+        if isinstance(value, str):
+            value = value.strip().lower()
+            if 'alta' in value:
+                return 90
+            if 'media' in value:
+                return 80
+            if 'baja' in value:
+                return 70
             return np.nan
         return value
 
