@@ -258,7 +258,7 @@ class DashboardExtrasView(APIView):
         return stats
 
     def _pacientes(self):
-        rows = Patient.objects.all().order_by('-fecha_consulta', '-id_paciente')[:100]
+        rows = Patient.objects.all().order_by('-fecha_consulta', '-id_paciente')
         return [
             {
                 'id_paciente': row.id_paciente,

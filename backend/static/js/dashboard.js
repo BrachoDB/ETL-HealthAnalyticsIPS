@@ -180,7 +180,7 @@
         const filterElement = document.getElementById('filtroPacientes');
         const query = filterElement ? filterElement.value.toLowerCase() : '';
         const filtered = (pacientes || []).filter(paciente => {
-            const text = `${paciente.nombres} ${paciente.apellidos} ${paciente.diagnostico_preliminar} ${paciente.riesgo_enfermedad}`.toLowerCase();
+            const text = `${paciente.id_paciente} ${paciente.nombres} ${paciente.apellidos} ${paciente.diagnostico_preliminar} ${paciente.riesgo_enfermedad}`.toLowerCase();
             const matchesRisk = activeRiskFilter === 'todos' || paciente.riesgo_enfermedad === activeRiskFilter;
             return matchesRisk && text.includes(query);
         });
